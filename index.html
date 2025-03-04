@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mouse Activity Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1A1A3A, #B4D7E9); /* Initial state, will be dynamic */
+            font-family: 'Montserrat', sans-serif;
+            color: #fff;
+        }
+        canvas {
+            display: block;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            width: 250px;
+            animation: fadeIn 0.5s ease-in;
+        }
+        #controls select, #controls button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #4A90E2, #50C878);
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            font-family: 'Montserrat', sans-serif;
+        }
+        #controls select:hover, #controls button:hover {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #357ABD, #3D8B5D);
+        }
+        #mouseCheckboxes {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        #mouseCheckboxes label {
+            display: block;
+            margin: 5px 0;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        #mouseCheckboxes label:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        #mouseCheckboxes input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        #legend {
+            position: absolute;
+            top: 80px; /* Adjusted to avoid time overlap */
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            animation: slideInRight 0.5s ease-in;
+        }
+        #legend h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        #legend div {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        #legend .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        #ranking {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 182, 193, 0.9); /* Pink for cute effect */
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(255, 105, 180, 0.5); /* Hot pink shadow */
+            animation: bounceIn 0.5s ease-in;
+        }
+        #ranking h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #FF69B4; /* Hot pink for cute text */
+            text-shadow: 0 1px 2px rgba(255, 105, 180, 0.5);
+        }
+        #ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #ranking-list li {
+            padding: 8px 0;
+            color: #FF1493; /* Deep pink for cute text */
+            font-weight: bold;
+            transition: transform 0.3s, opacity 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        #ranking-list li:hover {
+            transform: scale(1.1) rotate(5deg);
+            opacity: 0.9;
+        }
+        #ranking-list img {
+            margin-right: 10px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <div id="controls">
+        <select id="genderFilter">
+            <option value="all">All Genders</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+        </select>
+        <div id="mouseCheckboxes"></div>
+        <button id="filterButton">Filter</button>
+        <button id="trackButton" data-tracking="false">Track Selected Mouse</button>
+    </div>
+    <div id="legend">
+        <h3>Legend</h3>
+        <div><div class="color-box" style="background: hsl(240, 100%, 50%)"></div>Male (Low Temp)</div>
+        <div><div class="color-box" style="background: hsl(300, 100%, 50%)"></div>Male (High Temp)</div>
+        <div><div class="color-box" style="background: hsl(0, 100%, 50%)"></div>Female (Low Temp)</div>
+        <div><div class="color-box" style="background: hsl(30, 100%, 50%)"></div>Female (High Temp)</div>
+    </div>
+    <div id="ranking">
+        <h3>Top 3 Hourly Avg Activity Ranking</h3>
+        <ul id="ranking-list"></ul>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
