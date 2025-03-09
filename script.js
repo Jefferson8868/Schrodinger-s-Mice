@@ -62,89 +62,104 @@ function GravityPoint(x, y, radius, targets) {
     this._speed = new Vector();
 }
 
+GravityPoint.prototype = Object.create(Vector.prototype);
+GravityPoint.prototype.constructor = GravityPoint;
+
 GravityPoint.RADIUS_LIMIT = 65;
 GravityPoint.interferenceToPoint = true;
 
-GravityPoint.prototype = (function(o) {
-    var s = new Vector(0, 0), p;
-    for (p in o) s[p] = o[p];
-    return s;
-})({
-    gravity: 0.03,
-    isMouseOver: false,
-    dragging: false,
-    destroyed: false,
-    _easeRadius: 0,
-    _dragDistance: null,
-    _collapsing: false,
-    hitTest: function(p) { return this.distanceTo(p) < this.radius; },
-    startDrag: function(dragStartPoint) {
-        this._dragDistance = Vector.sub(dragStartPoint, this);
-        this.dragging = true;
-    },
-    drag: function(dragToPoint) {
-        this.x = dragToPoint.x - this._dragDistance.x;
-        this.y = dragToPoint.y - this._dragDistance.y;
-    },
-    endDrag: function() { this._dragDistance = null; this.dragging = false; },
-    addSpeed: function(d) { this._speed = this._speed.add(d); },
-    collapse: function() { this.currentRadius *= 1.75; this._collapsing = true; },
-    render: function(ctx) {
-        if (this.destroyed) return;
-        var particles = this._targets.particles, i, len;
-        for (i = 0, len = particles.length; i < len; i++) {
-            particles[i].addSpeed(Vector.sub(this, particles[i]).normalize().scale(this.gravity));
-        }
-        this._easeRadius = (this._easeRadius + (this.radius - this.currentRadius) * 0.07) * 0.95;
-        this.currentRadius += this._easeRadius;
-        if (this.currentRadius < 0) this.currentRadius = 0;
-        if (this._collapsing) {
-            this.radius *= 0.75;
-            if (this.currentRadius < 1) this.destroyed = true;
-            this._draw(ctx);
-            return;
-        }
-        var gravities = this._targets.gravities, g, absorp, area = this.radius * this.radius * Math.PI, garea;
-        for (i = 0, len = gravities.length; i < len; i++) {
-            g = gravities[i];
-            if (g === this || g.destroyed) continue;
-            if ((this.currentRadius >= g.radius || this.dragging) && this.distanceTo(g) < (this.currentRadius + g.radius) * 0.85) {
-                g.destroyed = true;
-                this.gravity += g.gravity;
-                absorp = Vector.sub(g, this).scale(g.radius / this.radius * 0.5);
-                this.addSpeed(absorp);
-                garea = g.radius * g.radius * Math.PI;
-                this.currentRadius = Math.sqrt((area + garea * 3) / Math.PI);
-                this.radius = Math.sqrt((area + garea) / Math.PI);
-            }
-            g.addSpeed(Vector.sub(this, g).normalize().scale(this.gravity));
-        }
-        if (GravityPoint.interferenceToPoint && !this.dragging) this.add(this._speed);
-        this._speed = new Vector();
-        if (this.currentRadius > GravityPoint.RADIUS_LIMIT) this.collapse();
-        this._draw(ctx);
-    },
-    _draw: function(ctx) {
-        var grd, r;
-        ctx.save();
-        grd = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 5);
-        grd.addColorStop(0, 'rgba(0, 0, 0, 0.1)');
-        grd.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius * 5, 0, Math.PI * 2, false);
-        ctx.fillStyle = grd;
-        ctx.fill();
-        r = Math.random() * this.currentRadius * 0.7 + this.currentRadius * 0.3;
-        grd = ctx.createRadialGradient(this.x, this.y, r, this.x, this.y, this.currentRadius);
-        grd.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        grd.addColorStop(1, Math.random() < 0.2 ? 'rgba(255, 196, 0, 0.15)' : 'rgba(103, 181, 191, 0.75)');
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.currentRadius, 0, Math.PI * 2, false);
-        ctx.fillStyle = grd;
-        ctx.fill();
-        ctx.restore();
+GravityPoint.prototype.gravity = 0.03;
+GravityPoint.prototype.isMouseOver = false;
+GravityPoint.prototype.dragging = false;
+GravityPoint.prototype.destroyed = false;
+GravityPoint.prototype._easeRadius = 0;
+GravityPoint.prototype._dragDistance = null;
+GravityPoint.prototype._collapsing = false;
+
+GravityPoint.prototype.hitTest = function(p) {
+    return this.distanceTo(p) < this.radius;
+};
+
+GravityPoint.prototype.startDrag = function(dragStartPoint) {
+    this._dragDistance = Vector.sub(dragStartPoint, this);
+    this.dragging = true;
+};
+
+GravityPoint.prototype.drag = function(dragToPoint) {
+    this.x = dragToPoint.x - this._dragDistance.x;
+    this.y = dragToPoint.y - this._dragDistance.y;
+};
+
+GravityPoint.prototype.endDrag = function() {
+    this._dragDistance = null;
+    this.dragging = false;
+};
+
+GravityPoint.prototype.addSpeed = function(d) {
+    this._speed = this._speed.add(d);
+};
+
+GravityPoint.prototype.collapse = function() {
+    this.currentRadius *= 1.75;
+    this._collapsing = true;
+};
+
+GravityPoint.prototype.render = function(ctx) {
+    if (this.destroyed) return;
+    var particles = this._targets.particles, i, len;
+    for (i = 0, len = particles.length; i < len; i++) {
+        particles[i].addSpeed(Vector.sub(this, particles[i]).normalize().scale(this.gravity));
     }
-});
+    this._easeRadius = (this._easeRadius + (this.radius - this.currentRadius) * 0.07) * 0.95;
+    this.currentRadius += this._easeRadius;
+    if (this.currentRadius < 0) this.currentRadius = 0;
+    if (this._collapsing) {
+        this.radius *= 0.75;
+        if (this.currentRadius < 1) this.destroyed = true;
+        this._draw(ctx);
+        return;
+    }
+    var gravities = this._targets.gravities, g, absorp, area = this.radius * this.radius * Math.PI, garea;
+    for (i = 0, len = gravities.length; i < len; i++) {
+        g = gravities[i];
+        if (g === this || g.destroyed) continue;
+        if ((this.currentRadius >= g.radius || this.dragging) && this.distanceTo(g) < (this.currentRadius + g.radius) * 0.85) {
+            g.destroyed = true;
+            this.gravity += g.gravity;
+            absorp = Vector.sub(g, this).scale(g.radius / this.radius * 0.5);
+            this.addSpeed(absorp);
+            garea = g.radius * g.radius * Math.PI;
+            this.currentRadius = Math.sqrt((area + garea * 3) / Math.PI);
+            this.radius = Math.sqrt((area + garea) / Math.PI);
+        }
+        g.addSpeed(Vector.sub(this, g).normalize().scale(this.gravity));
+    }
+    if (GravityPoint.interferenceToPoint && !this.dragging) this.add(this._speed);
+    this._speed = new Vector();
+    if (this.currentRadius > GravityPoint.RADIUS_LIMIT) this.collapse();
+    this._draw(ctx);
+};
+
+GravityPoint.prototype._draw = function(ctx) {
+    var grd, r;
+    ctx.save();
+    grd = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 5);
+    grd.addColorStop(0, 'rgba(0, 0, 0, 0.1)');
+    grd.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius * 5, 0, Math.PI * 2, false);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    r = Math.random() * this.currentRadius * 0.7 + this.currentRadius * 0.3;
+    grd = ctx.createRadialGradient(this.x, this.y, r, this.x, this.y, this.currentRadius);
+    grd.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    grd.addColorStop(1, Math.random() < 0.2 ? 'rgba(255, 196, 0, 0.15)' : 'rgba(103, 181, 191, 0.75)');
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.currentRadius, 0, Math.PI * 2, false);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.restore();
+};
 
 /**
  * Particle Class (Mice)
@@ -159,6 +174,8 @@ function Particle(x, y, radius, mouseId, gender, data) {
     this._speed = new Vector();
     this.trail = []; // For trail effect
     this.isTracked = false; // Track if this particle should show real-time data
+    this.labelAlpha = 0; // For fade animation
+    this.targetLabelAlpha = 0; // Target alpha for animation
 }
 
 Particle.prototype = (function(o) {
@@ -168,34 +185,64 @@ Particle.prototype = (function(o) {
 })({
     addSpeed: function(d) { this._speed.add(d); },
     update: function(timeIndex) {
-        var dataPoint = this.data[timeIndex % this.data.length];
-        var activity = typeof dataPoint.activity === 'number' ? dataPoint.activity : 0;
-        var temp = typeof dataPoint.temp === 'number' ? dataPoint.temp : 36;
-        var speedLimit = 12 * (0.8 + (activity * 0.5) + ((temp - 36) * 0.3));
-        if (this._speed.length() > speedLimit) {
-            this._speed.normalize().scale(speedLimit);
+        try {
+            if (!this.data || this.data.length === 0) {
+                var activity = 0;
+                var temp = 36;
+                var speedLimit = 12 * 0.8;
+                if (this._speed.length() > speedLimit) {
+                    this._speed.normalize().scale(speedLimit);
+                }
+                this._latest.set(this);
+                this.add(this._speed);
+                this.color = this.getColor(temp, activity);
+                return;
+            }
+            
+            var safeIndex = timeIndex % this.data.length;
+            var dataPoint = this.data[safeIndex] || {};
+            
+            var activity = typeof dataPoint.activity === 'number' ? dataPoint.activity : 0;
+            var temp = typeof dataPoint.temp === 'number' ? dataPoint.temp : 36;
+            
+            var speedLimit = 12 * (0.8 + (activity * 0.5) + ((temp - 36) * 0.3));
+            if (this._speed.length() > speedLimit) {
+                this._speed.normalize().scale(speedLimit);
+            }
+            
+            this._latest.set(this);
+            this.add(this._speed);
+            
+            this.color = this.getColor(temp, activity);
+            this.updateTrail(activity);
+
+            // Update label alpha for animation
+            this.targetLabelAlpha = this.isTracked ? 1 : 0;
+            this.labelAlpha += (this.targetLabelAlpha - this.labelAlpha) * 0.1;
+        } catch (error) {
+            console.error('Error updating particle:', error);
+            this._latest.set(this);
+            this.add(this._speed);
         }
-        this._latest.set(this);
-        this.add(this._speed);
-        this.color = this.getColor(temp, activity); // Enhanced color based on temp and activity
-        this.updateTrail(activity);
     },
     getColor: function(temp, activity) {
-        var tempFactor = (temp - 36) / 1.5; // Normalize temperature between 36 and 37.5°C
-        var activityFactor = Math.min(1, activity / 100); // Normalize activity between 0 and 1
+        var tempFactor = (temp - 36) / 1.5;
+        var activityFactor = Math.min(1, activity / 100);
         tempFactor = Math.max(0, Math.min(1, tempFactor));
         if (this.gender === 'male') {
-            var hue = 240 + 60 * tempFactor + 20 * activityFactor; // Blue to Cyan, brighter with activity
-            return `hsl(${hue}, 100%, ${50 + 20 * activityFactor}%)`; // Increase lightness with activity
-        } else {
-            var hue = 30 * tempFactor; // Red to Orange, brighter with activity
+            var hue = 240 + 60 * tempFactor + 20 * activityFactor;
             return `hsl(${hue}, 100%, ${50 + 20 * activityFactor}%)`;
+        } else {
+            var hue = 30 - 30 * tempFactor;
+            var saturation = 100;
+            var lightness = 50 + 20 * activityFactor;
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
         }
     },
     updateTrail: function(activity) {
-        if (Math.random() < 0.2) { // 20% chance per frame to reduce frequency
+        if (Math.random() < 0.2) {
             this.trail.push(this.clone());
-            var trailLength = Math.min(5, Math.floor(activity / 20)); // Reduced max length and density
+            var trailLength = Math.min(5, Math.floor(activity / 20));
             while (this.trail.length > trailLength) {
                 this.trail.shift();
             }
@@ -205,7 +252,7 @@ Particle.prototype = (function(o) {
         if (this.trail.length > 1) {
             ctx.save();
             ctx.strokeStyle = this.color;
-            ctx.lineWidth = 1; // Reduced line width for less GPU load
+            ctx.lineWidth = 1;
             ctx.globalAlpha = 0.3;
             ctx.beginPath();
             ctx.moveTo(this.trail[0].x, this.trail[0].y);
@@ -221,47 +268,99 @@ Particle.prototype = (function(o) {
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
         ctx.fill();
         ctx.restore();
-        if (this.isTracked) {
-            this.renderTrackingInfo(ctx);
-        }
+        // Label rendering is now handled by renderLabels
     },
     renderTrackingInfo: function(ctx) {
-        const timeIndex = Math.floor(simulationTime) % this.data.length;
-        const data = this.data[timeIndex];
-        if (data) {
-            const activity = data.activity || 0;
-            const temp = data.temp || 36;
-            const boxWidth = 150;
-            const boxHeight = 60;
-            const padding = 10;
-            ctx.save();
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.fillRect(this.x + padding, this.y - boxHeight - padding, boxWidth, boxHeight);
-            ctx.fillStyle = '#fff';
-            ctx.font = '12px Arial';
-            ctx.fillText(`Mouse ${this.mouseId}`, this.x + padding + 5, this.y - boxHeight + 5);
-            ctx.fillText(`Activity: ${activity.toFixed(2)}`, this.x + padding + 5, this.y - boxHeight + 20);
-            ctx.fillText(`Temp: ${temp.toFixed(2)}°C`, this.x + padding + 5, this.y - boxHeight + 35);
-            ctx.restore();
-        }
+        // This function is no longer used as renderLabels handles all label rendering
     }
 });
+
+/**
+ * Render Labels with Collision Detection and Animation
+ */
+function renderLabels(particles, ctx) {
+    const labels = [];
+
+    function isOverlapping(rect1, rect2) {
+        return !(rect1.x + rect1.width < rect2.x ||
+                 rect2.x + rect2.width < rect1.x ||
+                 rect1.y + rect1.height < rect2.y ||
+                 rect2.y + rect2.height < rect1.y);
+    }
+
+    function getLabelDimensions(text, x, y, ctx) {
+        const padding = 10;
+        const lineHeight = 15;
+        const lines = text.split('\n');
+        const width = Math.max(...lines.map(line => ctx.measureText(line).width)) + 2 * padding;
+        const height = lines.length * lineHeight + 2 * padding;
+        return { x: x - width / 2, y: y - height - 10, width, height };
+    }
+
+    particles.forEach((p) => {
+        if (!p.isTracked || !p.data || p.data.length === 0) return;
+
+        const timeIndex = Math.floor(simulationTime) % dataset.length;
+        const data = p.data[timeIndex] || { activity: 0, temp: 36 };
+        const text = `Mouse ${p.mouseId}\nActivity: ${data.activity.toFixed(2)}\nTemp: ${data.temp.toFixed(2)}°C`;
+        let x = p.x + 15;
+        let y = p.y;
+
+        let labelRect = getLabelDimensions(text, x, y, ctx);
+        let overlap = true;
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        while (overlap && attempts < maxAttempts) {
+            overlap = false;
+            for (let i = 0; i < labels.length; i++) {
+                if (isOverlapping(labelRect, labels[i])) {
+                    overlap = true;
+                    y += 15;
+                    labelRect = getLabelDimensions(text, x, y, ctx);
+                    break;
+                }
+            }
+            attempts++;
+        }
+
+        if (overlap) {
+            console.warn(`Unable to position label for Mouse ${p.mouseId} without overlap; adjusting horizontally.`);
+            x += 50;
+            labelRect = getLabelDimensions(text, x, y, ctx);
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.labelAlpha; // Apply fade animation
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(labelRect.x, labelRect.y, labelRect.width, labelRect.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Arial';
+        const lines = text.split('\n');
+        lines.forEach((line, i) => {
+            ctx.fillText(line, labelRect.x + 5, labelRect.y + 15 + i * 15);
+        });
+        ctx.restore();
+
+        labels.push(labelRect);
+    });
+}
 
 /**
  * Initialization and Animation
  */
 (function() {
-    var BACKGROUND_DAY = '#B4D7E9', // Light blue (day)
-        BACKGROUND_NIGHT = '#1A1A3A', // Deep purple (night)
-        BACKGROUND_SUNSET = '#FF4500', // Orange-red (sunset)
-        BACKGROUND_SUNRISE = '#FFD700', // Golden yellow (sunrise)
+    var BACKGROUND_DAY = '#B4D7E9',
+        BACKGROUND_NIGHT = '#0A0A20',
+        BACKGROUND_SUNSET = '#D35400',
+        BACKGROUND_SUNRISE = '#FFD700',
         PARTICLE_RADIUS = 5,
         G_POINT_RADIUS = 10,
         G_POINT_RADIUS_LIMITS = 65;
 
     var canvas, context, bufferCvs, bufferCtx, screenWidth, screenHeight,
         mouse = new Vector(), gravities = [], particles = [], grad,
-        dataset = [], simulationTime = 0, timeSpeed = 15,
+        dataset = [], simulationTime = 0, timeSpeed = 30,
         selectedMouseIds = [], selectedGender = 'all', centerGravityPoint,
         showLabels = true, hourlyCache = {}, lastUpdateTime = -1;
 
@@ -269,8 +368,8 @@ Particle.prototype = (function(o) {
         try {
             const response = await fetch('processed_data.json');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            dataset = await response.json();
-            dataset = dataset.map(d => ({
+            const data = await response.json();
+            dataset = data.map(d => ({
                 ...d,
                 mouseId: d.mouseId || d.MouseID || d.mouse_id,
                 gender: d.gender || d.Gender,
@@ -285,6 +384,40 @@ Particle.prototype = (function(o) {
             createMouseCheckboxes();
         } catch (error) {
             console.error("Error loading data:", error);
+            try {
+                console.log("Attempting fallback data loading method...");
+                const response = await fetch('processed_data_min.json.gz');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const compressedData = await response.arrayBuffer();
+                const decompressedData = await new Response(compressedData).blob();
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        dataset = JSON.parse(event.target.result);
+                        dataset = dataset.map(d => ({
+                            ...d,
+                            mouseId: d.mouseId || d.MouseID || d.mouse_id,
+                            gender: d.gender || d.Gender,
+                            activity: typeof d.activity === 'string' ? parseFloat(d.activity) : d.activity,
+                            temp: typeof d.temp === 'string' ? parseFloat(d.temp) : d.temp,
+                            Time: d.Time || d.time
+                        }));
+                        console.log("Loaded dataset (fallback):", dataset);
+                        console.log("Dataset length (fallback):", dataset.length);
+                        initParticles();
+                        createCenterGravityPoint();
+                        createMouseCheckboxes();
+                    } catch (parseError) {
+                        console.error("Error parsing JSON data:", parseError);
+                    }
+                };
+                reader.onerror = function() {
+                    console.error("Error reading file:", reader.error);
+                };
+                reader.readAsText(decompressedData);
+            } catch (fallbackError) {
+                console.error("All data loading methods failed:", fallbackError);
+            }
         }
     }
 
@@ -297,28 +430,6 @@ Particle.prototype = (function(o) {
         });
         centerGravityPoint.gravity = 0.02;
         gravities.push(centerGravityPoint);
-    }
-
-    function drawSelectedMouseData(ctx) {
-        if (!showLabels || selectedMouseIds.length === 0) return;
-        selectedMouseIds.forEach(mouseId => {
-            const particle = particles.find(p => p.mouseId === mouseId);
-            if (particle && particle.data) {
-                const timeIndex = Math.floor(simulationTime) % dataset.length;
-                const data = particle.data[timeIndex];
-                if (data) {
-                    ctx.save();
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                    ctx.fillRect(particle.x + 15, particle.y - 40, 150, 60);
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '12px Arial';
-                    ctx.fillText(`Mouse ${mouseId}`, particle.x + 20, particle.y - 25);
-                    ctx.fillText(`Activity: ${data.activity ? data.activity.toFixed(2) : '0'}`, particle.x + 20, particle.y - 10);
-                    ctx.fillText(`Temp: ${data.temp ? data.temp.toFixed(2) : '0'}°C`, particle.x + 20, particle.y + 5);
-                    ctx.restore();
-                }
-            }
-        });
     }
 
     function initParticles() {
@@ -371,14 +482,25 @@ Particle.prototype = (function(o) {
     function filterMice() {
         const checkboxes = document.querySelectorAll('#mouseCheckboxes input[type="checkbox"]:checked');
         const genderSelect = document.getElementById('genderFilter');
-        selectedMouseIds = Array.from(checkboxes).map(cb => cb.value);
-        selectedGender = genderSelect.value;
-        initParticles();
-        if (centerGravityPoint) {
-            const index = gravities.indexOf(centerGravityPoint);
-            if (index > -1) gravities.splice(index, 1);
+        const newSelectedMouseIds = Array.from(checkboxes).map(cb => cb.value);
+        const newSelectedGender = genderSelect.value;
+        
+        if (JSON.stringify(selectedMouseIds) === JSON.stringify(newSelectedMouseIds) && 
+            selectedGender === newSelectedGender) {
+            return;
         }
-        createCenterGravityPoint();
+        
+        selectedMouseIds = newSelectedMouseIds;
+        selectedGender = newSelectedGender;
+        
+        requestAnimationFrame(() => {
+            initParticles();
+            if (centerGravityPoint) {
+                const index = gravities.indexOf(centerGravityPoint);
+                if (index > -1) gravities.splice(index, 1);
+            }
+            createCenterGravityPoint();
+        });
     }
 
     function calculateHourlyAverage(mouseId, currentTimeIndex) {
@@ -397,28 +519,40 @@ Particle.prototype = (function(o) {
     }
 
     function updateRanking() {
-        if (Math.floor(simulationTime * 60) % 60 !== 0) return; // Update every second
-        const timeIndex = Math.floor(simulationTime) % dataset.length;
-        const currentHourlyActivities = particles.map(p => ({
-            mouseId: p.mouseId,
-            avgActivity: calculateHourlyAverage(p.mouseId, timeIndex)
-        }));
-        const top3 = currentHourlyActivities.sort((a, b) => b.avgActivity - a.avgActivity).slice(0, 3);
-        const rankingList = document.getElementById('ranking-list');
-        if (rankingList) {
+        try {
+            if (Math.floor(simulationTime * 60) % 60 !== 0) return;
+            const rankingList = document.getElementById('ranking-list');
+            if (!rankingList) return;
+            if (!dataset || dataset.length === 0 || !particles || particles.length === 0) return;
+            const timeIndex = Math.floor(simulationTime) % dataset.length;
+            const currentHourlyActivities = particles
+                .filter(p => p && p.mouseId)
+                .map(p => ({
+                    mouseId: p.mouseId,
+                    avgActivity: calculateHourlyAverage(p.mouseId, timeIndex)
+                }))
+                .filter(item => !isNaN(item.avgActivity));
+            if (currentHourlyActivities.length === 0) return;
+            const top3 = currentHourlyActivities.sort((a, b) => b.avgActivity - a.avgActivity).slice(0, 3);
             rankingList.innerHTML = '';
             top3.forEach((mouse, index) => {
-                const li = document.createElement('li');
-                const mouseImg = document.createElement('img');
-                mouseImg.src = `https://api.dicebear.com/6.x/miniavs/svg?seed=${mouse.mouseId}`; // Cute avatar for each mouse
-                mouseImg.style.width = '20px';
-                mouseImg.style.height = '20px';
-                mouseImg.style.marginRight = '10px';
-                li.appendChild(mouseImg);
-                li.innerHTML += `${index + 1}. Mouse ${mouse.mouseId} - Avg Activity: <span style="color: #FFC107; font-weight: bold;">${mouse.avgActivity.toFixed(2)}</span>`;
-                li.style.animation = `bounce 0.5s ease-in-out ${index * 0.1}s`;
-                rankingList.appendChild(li);
+                try {
+                    const li = document.createElement('li');
+                    const mouseImg = document.createElement('img');
+                    mouseImg.src = `https://api.dicebear.com/6.x/miniavs/svg?seed=${mouse.mouseId}`;
+                    mouseImg.style.width = '20px';
+                    mouseImg.style.height = '20px';
+                    mouseImg.style.marginRight = '10px';
+                    li.appendChild(mouseImg);
+                    li.innerHTML += `${index + 1}. Mouse ${mouse.mouseId} - Avg Activity: <span style="color: #FF1493; font-weight: bold;">${mouse.avgActivity.toFixed(2)}</span>`;
+                    li.style.animation = `bounce 0.5s ease-in-out ${index * 0.1}s`;
+                    rankingList.appendChild(li);
+                } catch (itemError) {
+                    console.error('Error creating ranking item:', itemError);
+                }
             });
+        } catch (error) {
+            console.error('Error updating ranking:', error);
         }
     }
 
@@ -431,19 +565,21 @@ Particle.prototype = (function(o) {
 
     function toggleTracking() {
         const trackButton = document.getElementById('trackButton');
-        if (!trackButton) return; // Prevent errors if button not found
+        if (!trackButton) return;
         const isTracking = trackButton.getAttribute('data-tracking') === 'true';
-        trackButton.setAttribute('data-tracking', !isTracking);
+        const newTrackingState = !isTracking;
+        trackButton.setAttribute('data-tracking', newTrackingState);
         trackButton.textContent = isTracking ? 'Track Selected Mouse' : 'Stop Tracking';
-        // Ensure particles are initialized and selected before tracking
         if (particles.length === 0 || selectedMouseIds.length === 0) {
             console.warn("No particles or mice selected. Please filter first or select mice.");
             trackButton.setAttribute('data-tracking', 'false');
             trackButton.textContent = 'Track Selected Mouse';
             return;
         }
-        particles.forEach(p => {
-            p.isTracked = !isTracking && selectedMouseIds.includes(p.mouseId);
+        requestAnimationFrame(() => {
+            particles.forEach(p => {
+                p.isTracked = newTrackingState && selectedMouseIds.includes(p.mouseId);
+            });
         });
     }
 
@@ -517,71 +653,136 @@ Particle.prototype = (function(o) {
     loadData().then(() => {
         if (particles.length === 0) console.warn("No particles initialized. Check dataset or filter conditions.");
         var loop = function() {
-            simulationTime += timeSpeed / 60;
-            var timeIndex = Math.floor(simulationTime) % dataset.length;
-            var dayCycle = timeIndex % 1440; // Minutes in a day (0-1439)
-            var dayProgress = dayCycle / 1440; // 0 to 1 over 24 hours
+            try {
+                simulationTime += timeSpeed / 60;
+                if (!dataset || dataset.length === 0) {
+                    console.warn("Dataset is empty or undefined");
+                    requestAnimationFrame(loop);
+                    return;
+                }
+                var timeIndex = Math.floor(simulationTime) % dataset.length;
+                var dayCycle = timeIndex % 1440;
+                var dayProgress = dayCycle / 1440;
 
-            // Define time-based background colors for a day cycle
-            var backgroundColor;
-            if (dayCycle < 240) { // 0-4 AM: 深夜
-                backgroundColor = BACKGROUND_NIGHT;
-            } else if (dayCycle < 480) { // 4-8 AM: 黎明到清晨
-                backgroundColor = interpolateColor(BACKGROUND_NIGHT, BACKGROUND_DAY, (dayCycle - 240) / 240);
-            } else if (dayCycle < 720) { // 8-12 PM: 清晨到正午
-                backgroundColor = BACKGROUND_DAY;
-            } else if (dayCycle < 960) { // 12-4 PM: 正午到下午
-                backgroundColor = BACKGROUND_DAY;
-            } else if (dayCycle < 1100) { // 4-8 PM: 下午到黄昏
-                backgroundColor = interpolateColor(BACKGROUND_DAY, BACKGROUND_SUNSET, (dayCycle - 960) / 240);
-            } else { // 8 PM-12 AM: 黄昏到深夜
-                backgroundColor = interpolateColor(BACKGROUND_SUNSET, BACKGROUND_NIGHT, (dayCycle - 1100) / 240);
+                var backgroundColor;
+                if (dayCycle < 240) {
+                    backgroundColor = BACKGROUND_NIGHT;
+                } else if (dayCycle < 480) {
+                    backgroundColor = interpolateColor(BACKGROUND_NIGHT, BACKGROUND_DAY, (dayCycle - 240) / 240);
+                } else if (dayCycle < 720) {
+                    backgroundColor = BACKGROUND_DAY;
+                } else if (dayCycle < 960) {
+                    backgroundColor = BACKGROUND_DAY;
+                } else if (dayCycle < 1100) {
+                    backgroundColor = interpolateColor(BACKGROUND_DAY, BACKGROUND_SUNSET, (dayCycle - 960) / 240);
+                } else {
+                    backgroundColor = interpolateColor(BACKGROUND_SUNSET, BACKGROUND_NIGHT, (dayCycle - 1100) / 240);
+                }
+
+                if (!context) {
+                    console.error("Canvas context is not available");
+                    requestAnimationFrame(loop);
+                    return;
+                }
+
+                context.fillStyle = backgroundColor;
+                context.fillRect(0, 0, screenWidth, screenHeight);
+                context.fillStyle = grad;
+                context.fillRect(0, 0, screenWidth, screenHeight);
+
+                try {
+                    for (var i = 0, len = gravities.length; i < len; i++) {
+                        var g = gravities[i];
+                        if (!g) continue;
+                        if (g.dragging) g.drag(mouse);
+                        g.render(context);
+                        if (g.destroyed) { gravities.splice(i, 1); len--; i--; }
+                    }
+                } catch (gravityError) {
+                    console.error("Error processing gravity points:", gravityError);
+                }
+
+                if (!bufferCtx) {
+                    console.error("Buffer context is not available");
+                    requestAnimationFrame(loop);
+                    return;
+                }
+
+                bufferCtx.save();
+                bufferCtx.globalCompositeOperation = 'destination-out';
+                bufferCtx.globalAlpha = 0.25;
+                bufferCtx.fillRect(0, 0, screenWidth, screenHeight);
+                bufferCtx.restore();
+
+                try {
+                    bufferCtx.save();
+                    for (var i = 0, len = particles.length; i < len; i++) {
+                        var p = particles[i];
+                        if (!p) continue;
+                        if (p.x > -50 && p.x < screenWidth + 50 && p.y > -50 && p.y < screenHeight + 50) {
+                            try {
+                                p.update(timeIndex);
+                                p.render(bufferCtx);
+                            } catch (particleError) {
+                                console.error("Error updating/rendering particle:", particleError);
+                            }
+                        } else {
+                            try {
+                                p.update(timeIndex);
+                            } catch (particleError) {
+                                console.error("Error updating particle:", particleError);
+                            }
+                        }
+                    }
+                    bufferCtx.restore();
+                } catch (particlesError) {
+                    console.error("Error processing particles:", particlesError);
+                }
+
+                context.drawImage(bufferCvs, 0, 0);
+
+                try {
+                    context.save();
+                    context.fillStyle = '#fff';
+                    context.font = 'bold 24px Montserrat';
+                    context.textAlign = 'center';
+                    context.fillText('Mouse Activity & Temp Visualization', screenWidth / 2, 50);
+                    const totalMinutes = Math.floor(simulationTime);
+                    const timeStr = formatTime(totalMinutes);
+                    context.font = '16px Montserrat';
+                    context.textAlign = 'right';
+                    context.fillText(timeStr, screenWidth - 20, 70);
+                    context.textAlign = 'left';
+                    try {
+                        renderLabels(particles, context); // Replaced drawSelectedMouseData
+                    } catch (dataError) {
+                        console.error("Error rendering labels:", dataError);
+                    }
+                    try {
+                        updateLegend();
+                    } catch (legendError) {
+                        console.error("Error updating legend:", legendError);
+                    }
+                    context.restore();
+                } catch (uiError) {
+                    console.error("Error rendering UI elements:", uiError);
+                }
+
+                try {
+                    updateRanking();
+                } catch (rankingError) {
+                    console.error("Error updating ranking:", rankingError);
+                }
+            } catch (error) {
+                console.error("Critical error in animation loop:", error);
             }
-
-            context.fillStyle = backgroundColor;
-            context.fillRect(0, 0, screenWidth, screenHeight);
-            context.fillStyle = grad;
-            context.fillRect(0, 0, screenWidth, screenHeight);
-
-            for (var i = 0, len = gravities.length; i < len; i++) {
-                var g = gravities[i];
-                if (g.dragging) g.drag(mouse);
-                g.render(context);
-                if (g.destroyed) { gravities.splice(i, 1); len--; i--; }
-            }
-
-            bufferCtx.save();
-            bufferCtx.globalCompositeOperation = 'destination-out';
-            bufferCtx.globalAlpha = 0.35;
-            bufferCtx.fillRect(0, 0, screenWidth, screenHeight);
-            bufferCtx.restore();
-
-            bufferCtx.save();
-            for (var i = 0, len = particles.length; i < len; i++) {
-                var p = particles[i];
-                p.update(timeIndex);
-                p.render(bufferCtx);
-            }
-            bufferCtx.restore();
-
-            context.drawImage(bufferCvs, 0, 0);
-
-            context.save();
-            context.fillStyle = '#fff';
-            context.font = 'bold 24px Montserrat';
-            context.textAlign = 'center';
-            context.fillText('Mouse Activity & Temp Visualization', screenWidth / 2, 50);
-            const totalMinutes = Math.floor(simulationTime);
-            const timeStr = formatTime(totalMinutes);
-            context.font = '16px Montserrat';
-            context.textAlign = 'right';
-            context.fillText(timeStr, screenWidth - 20, 70); // Adjusted position to avoid legend overlap
-            context.textAlign = 'left';
-            drawSelectedMouseData(context);
-            context.restore();
-
-            updateRanking();
-
+            requestAnimationFrame(loop);
+        };
+        loop();
+    }).catch(error => {
+        console.error("Error loading data:", error);
+        var loop = function() {
+            console.warn("Running in limited mode due to data loading failure");
             requestAnimationFrame(loop);
         };
         loop();
@@ -599,4 +800,63 @@ function interpolateColor(color1, color2, factor) {
     var g = Math.round(g1 + (g2 - g1) * factor);
     var b = Math.round(b1 + (b2 - b1) * factor);
     return `rgb(${r}, ${g}, ${b})`;
+}
+
+function updateLegend() {
+    try {
+        const legendElement = document.getElementById('legend');
+        if (!legendElement) return;
+        if (typeof dataset === 'undefined' || !Array.isArray(dataset) || dataset.length === 0) return;
+        if (!Array.isArray(particles) || particles.length === 0) return;
+        const timeIndex = Math.floor(simulationTime) % dataset.length;
+        const currentData = dataset.filter(d => d.Time === dataset[timeIndex].Time);
+        if (currentData.length > 0) {
+            const maleData = currentData.filter(d => d.gender === 'male');
+            const femaleData = currentData.filter(d => d.gender === 'female');
+            const maleTempRange = maleData.reduce((range, d) => {
+                if (d.temp) {
+                    range.min = Math.min(range.min, d.temp);
+                    range.max = Math.max(range.max, d.temp);
+                }
+                return range;
+            }, { min: Infinity, max: -Infinity });
+            const femaleTempRange = femaleData.reduce((range, d) => {
+                if (d.temp) {
+                    range.min = Math.min(range.min, d.temp);
+                    range.max = Math.max(range.max, d.temp);
+                }
+                return range;
+            }, { min: Infinity, max: -Infinity });
+            const maleLowElement = legendElement.querySelector('div:nth-child(2)');
+            const maleHighElement = legendElement.querySelector('div:nth-child(3)');
+            const femaleLowElement = legendElement.querySelector('div:nth-child(4)');
+            const femaleHighElement = legendElement.querySelector('div:nth-child(5)');
+            const minMaleTemp = maleTempRange.min !== Infinity ? maleTempRange.min.toFixed(2) : '36.00';
+            const maxMaleTemp = maleTempRange.max !== -Infinity ? maleTempRange.max.toFixed(2) : '37.50';
+            const minFemaleTemp = femaleTempRange.min !== Infinity ? femaleTempRange.min.toFixed(2) : '36.00';
+            const maxFemaleTemp = femaleTempRange.max !== -Infinity ? femaleTempRange.max.toFixed(2) : '37.50';
+            const maleLowTempHue = 240;
+            const maleHighTempHue = 300;
+            const femaleLowTempHue = 30;
+            const femaleHighTempHue = 0;
+            if (maleLowElement) {
+                maleLowElement.innerHTML = 
+                    `<div class="color-box" style="background: hsl(${maleLowTempHue}, 100%, 50%)"></div>Male (${minMaleTemp}°C)`;
+            }
+            if (maleHighElement) {
+                maleHighElement.innerHTML = 
+                    `<div class="color-box" style="background: hsl(${maleHighTempHue}, 100%, 50%)"></div>Male (${maxMaleTemp}°C)`;
+            }
+            if (femaleLowElement) {
+                femaleLowElement.innerHTML = 
+                    `<div class="color-box" style="background: hsl(${femaleLowTempHue}, 100%, 50%)"></div>Female (${minFemaleTemp}°C)`;
+            }
+            if (femaleHighElement) {
+                femaleHighElement.innerHTML = 
+                    `<div class="color-box" style="background: hsl(${femaleHighTempHue}, 100%, 50%)"></div>Female (${maxFemaleTemp}°C)`;
+            }
+        }
+    } catch (error) {
+        console.error("Error updating legend:", error);
+    }
 }

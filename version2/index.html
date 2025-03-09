@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>薛定谔的老鼠实验</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #121212;
+            font-family: 'Montserrat', sans-serif;
+            color: #fff;
+        }
+        canvas {
+            display: block;
+        }
+        #experiment-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+        #black-box {
+            width: 20%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            border-right: 2px solid #333;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            transition: transform 0.5s ease-in-out;
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.5);
+            z-index: 10;
+        }
+        #main-box {
+            width: 80%;
+            height: 100%;
+            position: relative;
+            background: rgba(10, 10, 40, 0.7);
+            perspective: 1000px;
+            overflow: hidden;
+        }
+        .mouse-container {
+            margin-bottom: 20px;
+        }
+        .mouse-container h3 {
+            color: #4A90E2;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .mouse-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        .mouse-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 150, 255, 0.3);
+        }
+        .mouse-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: #2a2a3a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid;
+            position: relative;
+            overflow: hidden;
+        }
+        .mouse-avatar.male {
+            border-color: #4A90E2;
+        }
+        .mouse-avatar.female {
+            border-color: #FF69B4;
+        }
+        .mouse-avatar:before {
+            content: '';
+            position: absolute;
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+        .mouse-avatar.male:before {
+            color: #4A90E2;
+        }
+        .mouse-avatar.female:before {
+            color: #FF69B4;
+        }
+        .mouse-avatar:after {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            background-color: #000;
+            top: 25%;
+        }
+        .mouse-avatar.male:after {
+            right: 25%;
+        }
+        .mouse-avatar.female:after {
+            left: 25%;
+        }
+        .mouse-info {
+            flex-grow: 1;
+        }
+        .mouse-id {
+            font-weight: bold;
+            color: #4A90E2;
+        }
+        .mouse-gender {
+            font-size: 0.8em;
+            color: #888;
+        }
+        #time-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            width: 250px;
+            z-index: 10;
+        }
+        #controls select, #controls button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #4A90E2, #50C878);
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            font-family: 'Montserrat', sans-serif;
+        }
+        #controls select:hover, #controls button:hover {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #357ABD, #3D8B5D);
+        }
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        #legend h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        #legend div {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        #legend .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="experiment-container">
+        <div id="black-box">
+            <div class="mouse-container" id="male-mice">
+                <h3>雄性老鼠</h3>
+            </div>
+            <div class="mouse-container" id="female-mice">
+                <h3>雌性老鼠</h3>
+            </div>
+        </div>
+        <div id="main-box">
+            <canvas id="c"></canvas>
+        </div>
+    </div>
+    
+    <div id="time-display">Day 1, 00:00</div>
+    
+    <div id="controls">
+        <select id="speedControl">
+            <option value="0.2">极慢速</option>
+            <option value="0.5">慢速</option>
+            <option value="1" selected>正常速度</option>
+            <option value="2">快速</option>
+            <option value="5">超快速</option>
+        </select>
+        <button id="pauseButton">暂停/继续</button>
+        <button id="resetButton">重置实验</button>
+    </div>
+    
+    <div id="legend">
+        <h3>图例</h3>
+        <div><div class="color-box" style="background: hsl(240, 100%, 50%)"></div>雄性 (低温)</div>
+        <div><div class="color-box" style="background: hsl(300, 100%, 50%)"></div>雄性 (高温)</div>
+        <div><div class="color-box" style="background: hsl(30, 100%, 50%)"></div>雌性 (低温)</div>
+        <div><div class="color-box" style="background: hsl(0, 100%, 50%)"></div>雌性 (高温)</div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
