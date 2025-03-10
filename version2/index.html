@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>薛定谔的老鼠实验</title>
+    <title>Schrödinger's Mice Experiment</title>
     <style>
         body {
             margin: 0;
@@ -47,6 +47,10 @@
             border-bottom: 1px solid #333;
             padding-bottom: 5px;
             margin-bottom: 10px;
+        }
+        /* Add specific styling for female mice heading */
+        #female-mice h3 {
+            color: #FF69B4;
         }
         .mouse-card {
             background: rgba(255, 255, 255, 0.1);
@@ -115,7 +119,14 @@
         }
         .mouse-id {
             font-weight: bold;
-            color: #4A90E2;
+            color: #4A90E2; /* Default color */
+        }
+        /* Gender-specific ID colors - updated selectors */
+        .mouse-avatar.male ~ .mouse-info .mouse-id {
+            color: #4A90E2; /* Blue for male */
+        }
+        .mouse-avatar.female ~ .mouse-info .mouse-id {
+            color: #FF69B4; /* Pink for female */
         }
         .mouse-gender {
             font-size: 0.8em;
@@ -212,10 +223,10 @@
     <div id="experiment-container">
         <div id="black-box">
             <div class="mouse-container" id="male-mice">
-                <h3>雄性老鼠</h3>
+                <h3>Male Mice</h3>
             </div>
             <div class="mouse-container" id="female-mice">
-                <h3>雌性老鼠</h3>
+                <h3>Female Mice</h3>
             </div>
         </div>
         <div id="main-box">
@@ -227,22 +238,22 @@
     
     <div id="controls">
         <select id="speedControl">
-            <option value="0.2">极慢速</option>
-            <option value="0.5">慢速</option>
-            <option value="1" selected>正常速度</option>
-            <option value="2">快速</option>
-            <option value="5">超快速</option>
+            <option value="0.1">Very Slow</option>
+            <option value="0.5">Slow</option>
+            <option value="1" selected>Normal Speed</option>
+            <option value="2">Fast</option>
+            <option value="6">Very Fast</option>
         </select>
-        <button id="pauseButton">暂停/继续</button>
-        <button id="resetButton">重置实验</button>
+        <button id="pauseButton">Pause/Resume</button>
+        <button id="resetButton">Reset Experiment</button>
     </div>
     
     <div id="legend">
-        <h3>图例</h3>
-        <div><div class="color-box" style="background: hsl(240, 100%, 50%)"></div>雄性 (低温)</div>
-        <div><div class="color-box" style="background: hsl(300, 100%, 50%)"></div>雄性 (高温)</div>
-        <div><div class="color-box" style="background: hsl(30, 100%, 50%)"></div>雌性 (低温)</div>
-        <div><div class="color-box" style="background: hsl(0, 100%, 50%)"></div>雌性 (高温)</div>
+        <h3>Legend</h3>
+        <div><div class="color-box" style="background: hsl(210, 100%, 80%)"></div>Male (Low Temp)</div>
+        <div><div class="color-box" style="background: hsl(240, 100%, 30%)"></div>Male (High Temp)</div>
+        <div><div class="color-box" style="background: hsl(16, 100%, 75%)"></div>Female (Low Temp)</div>
+        <div><div class="color-box" style="background: hsl(0, 100%, 30%)"></div>Female (High Temp)</div>
     </div>
     
     <script src="script.js"></script>

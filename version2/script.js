@@ -110,15 +110,12 @@ Mouse.prototype = {
             this._speed.y *= -0.5;
         }
 
-        // 改进的碰撞检测和弹开动画 - 考虑整个老鼠图形（包括耳朵和尾巴）
         mice.forEach(other => {
             if (other !== this) {
                 const dx = other.x - this.x;
                 const dy = other.y - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                // 增加碰撞检测的有效半径，考虑整个老鼠图形的大小
-                // 使用bodySize（2.5倍radius）再加上额外的空间（1.5倍）来确保包括耳朵和尾巴
-                const effectiveRadius = this.radius * 4.0; // 2.5(bodySize) * 1.6 = 4.0
+                const effectiveRadius = this.radius * 4.0;
                 const otherEffectiveRadius = other.radius * 4.0;
                 const minDistance = effectiveRadius + otherEffectiveRadius;
 
@@ -178,25 +175,28 @@ Mouse.prototype = {
         const timeIndex = Math.min(Math.floor(currentTime), this.data.length - 1);
         const currentData = this.data[timeIndex] || { activity: 0, temp: 36 };
         
-        // 实现平滑的颜色渐变，基于温度值
-        // 雄性：从蓝色(240)到紫色(300)的渐变
-        // 雌性：从橙色(30)到红色(0)的渐变
-        let baseHue, targetHue, tempRange;
+
+        let baseHue, targetHue, tempRange, baseLightness, targetLightness;
         if (this.gender === 'male') {
-            baseHue = 240; // 低温蓝色
-            targetHue = 300; // 高温紫色
+            baseHue = 210; // 低温浅蓝色
+            targetHue = 240; // 高温深蓝色
+            baseLightness = 80; // 低温更亮
+            targetLightness = 30; // 高温更暗
             tempRange = [36, 38]; // 温度范围
         } else {
             baseHue = 30; // 低温橙色
             targetHue = 0; // 高温红色
+            baseLightness = 75; // 低温更亮
+            targetLightness = 30; // 高温更暗
             tempRange = [36, 38]; // 温度范围
         }
         
         // 计算温度在范围内的比例
         const tempRatio = Math.max(0, Math.min(1, (currentData.temp - tempRange[0]) / (tempRange[1] - tempRange[0])));
         
-        // 计算当前色相值，实现平滑渐变
+        // 计算当前色相值和亮度值，实现平滑渐变
         const hue = baseHue + (targetHue - baseHue) * tempRatio;
+        const lightness = baseLightness + (targetLightness - baseLightness) * tempRatio;
 
         ctx.save();
         
@@ -206,7 +206,7 @@ Mouse.prototype = {
         // 绘制老鼠身体
         ctx.beginPath();
         ctx.arc(this.x, this.y, bodySize, 0, Math.PI * 2, false);
-        ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+        ctx.fillStyle = `hsl(${hue}, 100%, ${lightness}%)`;
         ctx.fill();
         
         // 绘制老鼠耳朵
@@ -377,7 +377,8 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         simulationTime = 0,
         timeSpeed = 30,
         maxTime = 336, // 14天*24小时
-        isPaused = false;
+        isPaused = false,
+        simulationStarted = false; // Add flag to track if simulation has started
 
     // 创建老鼠卡片
     function createMouseCard(mouseId, gender) {
@@ -395,7 +396,7 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         info.className = 'mouse-info';
         info.innerHTML = `
             <div class="mouse-id">Mouse ${mouseId}</div>
-            <div class="mouse-gender">${gender === 'male' ? '雄性' : '雌性'}</div>
+            <div class="mouse-gender">${gender === 'male' ? 'Male' : 'Female'}</div>
         `;
 
         card.appendChild(avatar);
@@ -418,6 +419,12 @@ function renderLabels(mice, ctx, currentSimulationTime) {
                     this.style.border = '';
                 }
             } else {
+                // Start the simulation if this is the first mouse
+                if (!simulationStarted && mice.length === 0) {
+                    simulationStarted = true;
+                    simulationTime = 0; // Reset time when first mouse is selected
+                }
+                
                 // 如果老鼠不在实验中，释放它并设置为跟踪状态
                 releaseMouse(mouseId, gender);
                 this.style.opacity = '0.5';
@@ -494,11 +501,26 @@ function renderLabels(mice, ctx, currentSimulationTime) {
     }
 
     // 更新和渲染
-    // 在update函数中修改时间流速和活动范围
     function update() {
-        if (!isPaused) {
-            const newTime = simulationTime + timeSpeed * 0.001; // 降低时间流速
-            simulationTime = Math.min(newTime, maxTime - 0.01); // 保留一点余量避免越界
+        if (!isPaused && simulationStarted) { // Only update time if simulation has started
+            const newTime = simulationTime + timeSpeed * 0.001;
+            simulationTime = Math.min(newTime, maxTime - 0.01);
+            
+            // Pause the simulation when it reaches the maximum time (14 days)
+            if (simulationTime >= maxTime - 0.01) {
+                isPaused = true;
+                const pauseButton = document.getElementById('pauseButton');
+                const resetButton = document.getElementById('resetButton');
+                if (pauseButton) {
+                    pauseButton.textContent = 'Resume';
+                }
+                // Add pulsing effect to the reset button to draw attention
+                if (resetButton && !resetButton.classList.contains('pulse-attention')) {
+                    resetButton.classList.add('pulse-attention');
+                    // Add tooltip to suggest resetting
+                    resetButton.title = "Experiment complete! Click to reset and start a new experiment";
+                }
+            }
             
             mice.forEach(mouse => {
                 mouse.update(Math.floor(simulationTime), {
@@ -513,17 +535,100 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         // 更新时间显示
         const timeDisplay = document.getElementById('time-display');
         if (timeDisplay) {
-            const totalHours = Math.floor(simulationTime);
-            const days = Math.floor(totalHours / 24) + 1;
-            const hours = totalHours % 24;
-            const minutes = Math.floor((simulationTime - Math.floor(simulationTime)) * 60);
-            timeDisplay.textContent = `Day ${days}, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            if (!simulationStarted) {
+                timeDisplay.textContent = 'Day 1, 00:00'; // Default display before simulation starts
+            } else {
+                const totalHours = Math.floor(simulationTime);
+                const days = Math.floor(totalHours / 24) + 1;
+                const hours = totalHours % 24;
+                const minutes = Math.floor((simulationTime - Math.floor(simulationTime)) * 60);
+                timeDisplay.textContent = `Day ${days}, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            }
         }
     }
 
     function render() {
-        context.fillStyle = BACKGROUND_COLOR;
+        // Create a smooth transition between day and night
+        const hours = Math.floor(simulationTime) % 24;
+        const minutes = (simulationTime - Math.floor(simulationTime)) * 60;
+        
+        // Calculate transition periods (dawn: 5-7am, dusk: 17-19pm)
+        let dayProgress = 0;
+        
+        if (hours >= 7 && hours < 17) {
+            // Full daylight
+            dayProgress = 1;
+        } else if (hours >= 5 && hours < 7) {
+            // Dawn transition (5am-7am)
+            dayProgress = (hours - 5) / 2 + (minutes / 120);
+        } else if (hours >= 17 && hours < 19) {
+            // Dusk transition (5pm-7pm)
+            dayProgress = 1 - ((hours - 17) / 2 + (minutes / 120));
+        } else {
+            // Full night
+            dayProgress = 0;
+        }
+        
+        // Interpolate between night and day colors
+        const nightColor = { r: 10, g: 10, b: 30 }; // Darker blue-black for night
+        const dayColor = { r: 255, g: 255, b: 240 }; // Slightly warmer white for day
+        
+        const r = Math.round(nightColor.r + (dayColor.r - nightColor.r) * dayProgress);
+        const g = Math.round(nightColor.g + (dayColor.g - nightColor.g) * dayProgress);
+        const b = Math.round(nightColor.b + (dayColor.b - nightColor.b) * dayProgress);
+        
+        // Set background color based on interpolated value
+        context.fillStyle = `rgb(${r}, ${g}, ${b})`;
         context.fillRect(0, 0, screenWidth, screenHeight);
+        
+        // Position the sun/moon in the middle of the canvas but higher up
+        const centerX = screenWidth / 2;
+        const centerY = screenHeight / 11; // Moved higher (1/11 from the top)
+        
+        // Add sun/moon with appropriate opacity based on time of day
+        if (dayProgress > 0) {
+            // Draw sun with opacity based on dayProgress
+            const sunRadius = 25; // Larger size for center display
+            
+            context.globalAlpha = dayProgress;
+            context.beginPath();
+            context.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
+            context.fillStyle = '#FFDD00'; // Brighter yellow for sun
+            context.fill();
+            
+            // Sun rays with opacity
+            context.strokeStyle = '#FFA500'; // Orange rays for more contrast
+            context.lineWidth = 3;
+            for (let i = 0; i < 12; i++) {
+                const angle = i * Math.PI / 6;
+                context.beginPath();
+                context.moveTo(centerX + Math.cos(angle) * sunRadius, centerY + Math.sin(angle) * sunRadius);
+                context.lineTo(centerX + Math.cos(angle) * (sunRadius + 20), centerY + Math.sin(angle) * (sunRadius + 20));
+                context.stroke();
+            }
+            context.globalAlpha = 1;
+        }
+        
+        if (dayProgress < 1) {
+            // Draw moon with opacity based on night progress
+            const moonOpacity = 1 - dayProgress;
+            const moonRadius = 25; // Larger size for center display
+            
+            context.globalAlpha = moonOpacity;
+            context.beginPath();
+            context.arc(centerX, centerY, moonRadius, 0, Math.PI * 2);
+            context.fillStyle = '#E6F0FF'; // Slightly bluer white for moon
+            context.fill();
+            
+            // Moon shadow to create crescent effect
+            context.beginPath();
+            context.arc(centerX - 10, centerY, moonRadius - 5, 0, Math.PI * 2);
+            context.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            context.fill();
+            
+            context.globalAlpha = 1;
+        }
+        
         mice.forEach(mouse => mouse.render(context, simulationTime));
         renderLabels(mice, context, simulationTime);
     }
@@ -551,18 +656,35 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         if (pauseButton) {
             pauseButton.addEventListener('click', function() {
                 isPaused = !isPaused;
-                this.textContent = isPaused ? '继续' : '暂停/继续';
+                this.textContent = isPaused ? 'Resume' : 'Pause/Resume';
             });
         }
 
         if (resetButton) {
             resetButton.addEventListener('click', function() {
                 simulationTime = 0;
+                simulationStarted = false; // Reset the simulation started flag
+                isPaused = false; // Reset the pause state
                 mice = [];
+                
+                // Reset the pause button text
+                const pauseButton = document.getElementById('pauseButton');
+                if (pauseButton) {
+                    pauseButton.textContent = 'Pause/Resume';
+                }
+                
+                // Remove the pulse-attention class if it exists
+                if (this.classList.contains('pulse-attention')) {
+                    this.classList.remove('pulse-attention');
+                    this.title = "Reset Experiment";
+                }
+                
                 document.querySelectorAll('.mouse-card').forEach(card => {
                     card.style.opacity = '1';
                     card.style.pointerEvents = 'auto';
                     card.classList.remove('mouse-release');
+                    card.style.boxShadow = '';
+                    card.style.border = '';
                 });
             });
         }
