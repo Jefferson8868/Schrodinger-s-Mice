@@ -170,6 +170,33 @@ Mouse.prototype = {
         }
     },
 
+    // 添加获取温度范围的方法
+    getTempRange: function() {
+        // 默认温度范围（仅在没有数据时使用）
+        let minTemp = 36;
+        let maxTemp = 38;
+        
+        // 直接从数据中计算每只老鼠自己的温度范围
+        if (this.data && this.data.length > 0) {
+            const temps = this.data.map(d => d.temp).filter(t => t !== undefined && t !== null);
+            if (temps.length > 0) {
+                const dataMinTemp = Math.min(...temps);
+                const dataMaxTemp = Math.max(...temps);
+                
+                // 只有当数据中的温度范围合理时才使用
+                if (dataMaxTemp > dataMinTemp) {
+                    // 为了让颜色变化更明显，显著扩大范围
+                    const range = dataMaxTemp - dataMinTemp;
+                    // 大幅扩大范围以增强对比度
+                    minTemp = dataMinTemp - range * 0.25; // 显著扩大下限
+                    maxTemp = dataMaxTemp + range * 0.25; // 显著扩大上限
+                }
+            }
+        }
+        
+        return [minTemp, maxTemp];
+    },
+
     render: function(ctx, currentTime) {
         // 使用当前时间索引获取数据，确保颜色随时间变化
         const timeIndex = Math.min(Math.floor(currentTime), this.data.length - 1);
@@ -181,27 +208,46 @@ Mouse.prototype = {
             isEstrus = true;
         }
 
-        let baseHue, targetHue, tempRange, baseLightness, targetLightness;
+        let baseHue, targetHue, baseLightness, targetLightness, baseSaturation, targetSaturation;
         if (this.gender === 'male') {
-            baseHue = 200; // More vibrant blue for low temp
-            targetHue = 240; // Deep blue for high temp
-            baseLightness = 85; // Much brighter for low temp
-            targetLightness = 25; // Darker for high temp
-            tempRange = [36, 38]; // 温度范围
+            // 使用index.html中定义的颜色：从hsl(200, 100%, 85%)到hsl(240, 100%, 25%)
+            baseHue = 200; // 浅蓝色为低温
+            targetHue = 240; // 深蓝色为高温
+            baseLightness = 85; // 更亮的低温
+            targetLightness = 25; // 更暗的高温
+            baseSaturation = 100; // 饱和度保持100%
+            targetSaturation = 100; // 饱和度保持100%
         } else {
-            baseHue = 40; // More yellow-orange for low temp
-            targetHue = 0; // Pure red for high temp
-            baseLightness = 80; // Brighter for low temp
-            targetLightness = 25; // Darker for high temp
-            tempRange = [36, 38]; // 温度范围
+            // 使用index.html中定义的颜色：从hsl(40, 100%, 80%)到hsl(0, 100%, 25%)
+            baseHue = 40; // 黄色为低温
+            targetHue = 0; // 红色为高温
+            baseLightness = 80; // 更亮的低温
+            targetLightness = 25; // 更暗的高温
+            baseSaturation = 100; // 饱和度保持100%
+            targetSaturation = 100; // 饱和度保持100%
         }
+        
+        // 获取每只老鼠自己的温度范围
+        const tempRange = this.getTempRange();
         
         // 计算温度在范围内的比例
         const tempRatio = Math.max(0, Math.min(1, (currentData.temp - tempRange[0]) / (tempRange[1] - tempRange[0])));
         
-        // 计算当前色相值和亮度值，实现平滑渐变
-        const hue = baseHue + (targetHue - baseHue) * tempRatio;
-        const lightness = baseLightness + (targetLightness - baseLightness) * tempRatio;
+        // 使用更强的非线性映射使颜色变化更加明显
+        // 指数更小使颜色变化更加剧烈
+        const enhancedTempRatio = Math.pow(tempRatio, 0.5); 
+        
+        // 计算当前色相值、饱和度和亮度值，使用增强的比例
+        const hue = baseHue + (targetHue - baseHue) * enhancedTempRatio;
+        const saturation = baseSaturation + (targetSaturation - baseSaturation) * enhancedTempRatio;
+        
+        // 对亮度使用不同的非线性映射，使亮度变化更加明显
+        // 使用二次函数使亮度变化更加剧烈
+        const enhancedLightnessRatio = tempRatio * tempRatio;
+        const lightness = baseLightness + (targetLightness - baseLightness) * enhancedLightnessRatio;
+        
+        // 保留增强的色相值用于绘制
+        const enhancedHue = hue;
 
         ctx.save();
         
@@ -211,7 +257,8 @@ Mouse.prototype = {
         // 绘制老鼠身体
         ctx.beginPath();
         ctx.arc(this.x, this.y, bodySize, 0, Math.PI * 2, false);
-        ctx.fillStyle = `hsl(${hue}, 100%, ${lightness}%)`;
+        // 使用增强的HSL值，确保饱和度保持在100%以获得最鲜艳的颜色
+        ctx.fillStyle = `hsl(${enhancedHue}, 100%, ${lightness}%)`;
         ctx.fill();
         
         // 绘制老鼠耳朵
