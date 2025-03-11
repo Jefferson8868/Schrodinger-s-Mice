@@ -1,19 +1,5 @@
 /**
- * requestAnimationFrame polyfill
- */
-window.requestAnimationFrame = (function() {
-    return window.requestAnimationFrame ||
-           window.webkitRequestAnimationFrame ||
-           window.mozRequestAnimationFrame ||
-           window.oRequestAnimationFrame ||
-           window.msRequestAnimationFrame ||
-           function(callback) {
-               window.setTimeout(callback, 1000 / 60);
-           };
-})();
-
-/**
- * Vector Class
+ * Vector Class Implementation
  */
 function Vector(x, y) {
     this.x = x || 0;
@@ -27,258 +13,294 @@ Vector.random = function() { return new Vector(Math.random() * 2 - 1, Math.rando
 
 Vector.prototype = {
     set: function(x, y) {
-        if (typeof x === 'object') { y = x.y; x = x.x; }
+        if (typeof x === 'object') {
+            y = x.y;
+            x = x.x;
+        }
         this.x = x || 0;
         this.y = y || 0;
         return this;
     },
-    add: function(v) { this.x += v.x; this.y += v.y; return this; },
-    sub: function(v) { this.x -= v.x; this.y -= v.y; return this; },
-    scale: function(s) { this.x *= s; this.y *= s; return this; },
-    length: function() { return Math.sqrt(this.x * this.x + this.y * this.y); },
-    lengthSq: function() { return this.x * this.x + this.y * this.y; },
-    normalize: function() {
-        var m = Math.sqrt(this.x * this.x + this.y * this.y);
-        if (m) { this.x /= m; this.y /= m; }
+    add: function(v) {
+        this.x += v.x;
+        this.y += v.y;
         return this;
     },
-    angle: function() { return Math.atan2(this.y, this.x); },
-    angleTo: function(v) { var dx = v.x - this.x, dy = v.y - this.y; return Math.atan2(dy, dx); },
-    distanceTo: function(v) { var dx = v.x - this.x, dy = v.y - this.y; return Math.sqrt(dx * dx + dy * dy); },
-    distanceToSq: function(v) { var dx = v.x - this.x, dy = v.y - this.y; return dx * dx + dy * dy; },
-    lerp: function(v, t) { this.x += (v.x - this.x) * t; this.y += (v.y - this.y) * t; return this; },
-    clone: function() { return new Vector(this.x, this.y); },
-    toString: function() { return '(x:' + this.x + ', y:' + this.y + ')'; }
-};
-
-/**
- * GravityPoint Class
- */
-function GravityPoint(x, y, radius, targets) {
-    Vector.call(this, x, y);
-    this.radius = radius;
-    this.currentRadius = radius * 0.5;
-    this._targets = { particles: targets.particles || [], gravities: targets.gravities || [] };
-    this._speed = new Vector();
-}
-
-GravityPoint.prototype = Object.create(Vector.prototype);
-GravityPoint.prototype.constructor = GravityPoint;
-
-GravityPoint.RADIUS_LIMIT = 65;
-GravityPoint.interferenceToPoint = true;
-
-GravityPoint.prototype.gravity = 0.03;
-GravityPoint.prototype.isMouseOver = false;
-GravityPoint.prototype.dragging = false;
-GravityPoint.prototype.destroyed = false;
-GravityPoint.prototype._easeRadius = 0;
-GravityPoint.prototype._dragDistance = null;
-GravityPoint.prototype._collapsing = false;
-
-GravityPoint.prototype.hitTest = function(p) {
-    return this.distanceTo(p) < this.radius;
-};
-
-GravityPoint.prototype.startDrag = function(dragStartPoint) {
-    this._dragDistance = Vector.sub(dragStartPoint, this);
-    this.dragging = true;
-};
-
-GravityPoint.prototype.drag = function(dragToPoint) {
-    this.x = dragToPoint.x - this._dragDistance.x;
-    this.y = dragToPoint.y - this._dragDistance.y;
-};
-
-GravityPoint.prototype.endDrag = function() {
-    this._dragDistance = null;
-    this.dragging = false;
-};
-
-GravityPoint.prototype.addSpeed = function(d) {
-    this._speed = this._speed.add(d);
-};
-
-GravityPoint.prototype.collapse = function() {
-    this.currentRadius *= 1.75;
-    this._collapsing = true;
-};
-
-GravityPoint.prototype.render = function(ctx) {
-    if (this.destroyed) return;
-    var particles = this._targets.particles, i, len;
-    for (i = 0, len = particles.length; i < len; i++) {
-        particles[i].addSpeed(Vector.sub(this, particles[i]).normalize().scale(this.gravity));
-    }
-    this._easeRadius = (this._easeRadius + (this.radius - this.currentRadius) * 0.07) * 0.95;
-    this.currentRadius += this._easeRadius;
-    if (this.currentRadius < 0) this.currentRadius = 0;
-    if (this._collapsing) {
-        this.radius *= 0.75;
-        if (this.currentRadius < 1) this.destroyed = true;
-        this._draw(ctx);
-        return;
-    }
-    var gravities = this._targets.gravities, g, absorp, area = this.radius * this.radius * Math.PI, garea;
-    for (i = 0, len = gravities.length; i < len; i++) {
-        g = gravities[i];
-        if (g === this || g.destroyed) continue;
-        if ((this.currentRadius >= g.radius || this.dragging) && this.distanceTo(g) < (this.currentRadius + g.radius) * 0.85) {
-            g.destroyed = true;
-            this.gravity += g.gravity;
-            absorp = Vector.sub(g, this).scale(g.radius / this.radius * 0.5);
-            this.addSpeed(absorp);
-            garea = g.radius * g.radius * Math.PI;
-            this.currentRadius = Math.sqrt((area + garea * 3) / Math.PI);
-            this.radius = Math.sqrt((area + garea) / Math.PI);
+    sub: function(v) {
+        this.x -= v.x;
+        this.y -= v.y;
+        return this;
+    },
+    scale: function(s) {
+        this.x *= s;
+        this.y *= s;
+        return this;
+    },
+    length: function() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    },
+    normalize: function() {
+        var len = Math.sqrt(this.x * this.x + this.y * this.y);
+        if (len) {
+            this.x /= len;
+            this.y /= len;
         }
-        g.addSpeed(Vector.sub(this, g).normalize().scale(this.gravity));
+        return this;
+    },
+    angle: function() {
+        return Math.atan2(this.y, this.x);
+    },
+    clone: function() {
+        return new Vector(this.x, this.y);
     }
-    if (GravityPoint.interferenceToPoint && !this.dragging) this.add(this._speed);
-    this._speed = new Vector();
-    if (this.currentRadius > GravityPoint.RADIUS_LIMIT) this.collapse();
-    this._draw(ctx);
-};
-
-GravityPoint.prototype._draw = function(ctx) {
-    var grd, r;
-    ctx.save();
-    grd = ctx.createRadialGradient(this.x, this.y, this.radius, this.x, this.y, this.radius * 5);
-    grd.addColorStop(0, 'rgba(0, 0, 0, 0.1)');
-    grd.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius * 5, 0, Math.PI * 2, false);
-    ctx.fillStyle = grd;
-    ctx.fill();
-    r = Math.random() * this.currentRadius * 0.7 + this.currentRadius * 0.3;
-    grd = ctx.createRadialGradient(this.x, this.y, r, this.x, this.y, this.currentRadius);
-    grd.addColorStop(0, 'rgba(0, 0, 0, 1)');
-    grd.addColorStop(1, Math.random() < 0.2 ? 'rgba(255, 196, 0, 0.15)' : 'rgba(103, 181, 191, 0.75)');
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.currentRadius, 0, Math.PI * 2, false);
-    ctx.fillStyle = grd;
-    ctx.fill();
-    ctx.restore();
 };
 
 /**
- * Particle Class (Mice)
+ * Mouse Class Implementation
  */
-function Particle(x, y, radius, mouseId, gender, data) {
-    Vector.call(this, x, y);
+function Mouse(x, y, radius, mouseId, gender, data) {
+    this.x = x;
+    this.y = y;
     this.radius = radius;
     this.mouseId = mouseId;
     this.gender = gender;
     this.data = data;
-    this._latest = new Vector();
     this._speed = new Vector();
-    this.trail = []; // For trail effect
-    this.isTracked = false; // Track if this particle should show real-time data
-    this.labelAlpha = 0; // For fade animation
-    this.targetLabelAlpha = 0; // Target alpha for animation
+    this.isTracked = false;
+    this.labelAlpha = 0;
+    this.justReleased = false;
+    this.releaseTime = 0;
 }
 
-Particle.prototype = (function(o) {
-    var s = new Vector(0, 0), p;
-    for (p in o) s[p] = o[p];
-    return s;
-})({
-    addSpeed: function(d) { this._speed.add(d); },
-    update: function(timeIndex) {
-        try {
-            if (!this.data || this.data.length === 0) {
-                var activity = 0;
-                var temp = 36;
-                var speedLimit = 12 * 0.8;
-                if (this._speed.length() > speedLimit) {
-                    this._speed.normalize().scale(speedLimit);
+Mouse.prototype = {
+    update: function(timeIndex, bounds, mice) {
+        // 确保timeIndex不超过数据长度
+        const safeTimeIndex = Math.min(timeIndex, this.data.length - 1);
+        const currentData = this.data[safeTimeIndex] || { activity: 0, temp: 36 };
+        
+        // 如果activity为0，停止移动
+        if (currentData.activity === 0) {
+            this._speed = new Vector(0, 0);
+            return;
+        }
+
+        // 基于activity和temperature添加随机移动
+        const activityFactor = currentData.activity / 100;
+        const tempFactor = (currentData.temp - 36) / 1.5;
+        const randomMove = Vector.random().scale(activityFactor * 2 + tempFactor);
+        this._speed.add(randomMove);
+
+        // 更新位置
+        this.x += this._speed.x;
+        this.y += this._speed.y;
+
+        // 边界检查
+        if (this.x < bounds.x + this.radius) {
+            this.x = bounds.x + this.radius;
+            this._speed.x *= -0.5;
+        } else if (this.x > bounds.width - this.radius) {
+            this.x = bounds.width - this.radius;
+            this._speed.x *= -0.5;
+        }
+        if (this.y < bounds.y + this.radius) {
+            this.y = bounds.y + this.radius;
+            this._speed.y *= -0.5;
+        } else if (this.y > bounds.height - this.radius) {
+            this.y = bounds.height - this.radius;
+            this._speed.y *= -0.5;
+        }
+
+        mice.forEach(other => {
+            if (other !== this) {
+                const dx = other.x - this.x;
+                const dy = other.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const effectiveRadius = this.radius * 4.0;
+                const otherEffectiveRadius = other.radius * 4.0;
+                const minDistance = effectiveRadius + otherEffectiveRadius;
+
+                if (distance < minDistance) {
+                    // 计算碰撞角度
+                    const angle = Math.atan2(dy, dx);
+                    
+                    // 计算重叠量
+                    const overlap = minDistance - distance;
+                    
+                    // 将老鼠分开
+                    const moveX = Math.cos(angle) * overlap * 0.5;
+                    const moveY = Math.sin(angle) * overlap * 0.5;
+                    
+                    this.x -= moveX;
+                    this.y -= moveY;
+                    other.x += moveX;
+                    other.y += moveY;
+                    
+                    // 计算碰撞后的速度（弹开效果）
+                    const thisSpeed = Math.sqrt(this._speed.x * this._speed.x + this._speed.y * this._speed.y);
+                    const otherSpeed = Math.sqrt(other._speed.x * other._speed.x + other._speed.y * other._speed.y);
+                    
+                    // 交换速度方向并添加一些随机性
+                    this._speed.x = -Math.cos(angle) * otherSpeed * 0.8 + (Math.random() * 0.4 - 0.2);
+                    this._speed.y = -Math.sin(angle) * otherSpeed * 0.8 + (Math.random() * 0.4 - 0.2);
+                    other._speed.x = Math.cos(angle) * thisSpeed * 0.8 + (Math.random() * 0.4 - 0.2);
+                    other._speed.y = Math.sin(angle) * thisSpeed * 0.8 + (Math.random() * 0.4 - 0.2);
                 }
-                this._latest.set(this);
-                this.add(this._speed);
-                this.color = this.getColor(temp, activity);
-                return;
             }
-            
-            var safeIndex = timeIndex % this.data.length;
-            var dataPoint = this.data[safeIndex] || {};
-            
-            var activity = typeof dataPoint.activity === 'number' ? dataPoint.activity : 0;
-            var temp = typeof dataPoint.temp === 'number' ? dataPoint.temp : 36;
-            
-            var speedLimit = 12 * (0.8 + (activity * 0.5) + ((temp - 36) * 0.3));
-            if (this._speed.length() > speedLimit) {
-                this._speed.normalize().scale(speedLimit);
-            }
-            
-            this._latest.set(this);
-            this.add(this._speed);
-            
-            this.color = this.getColor(temp, activity);
-            this.updateTrail(activity);
+        });
 
-            // Update label alpha for animation
-            this.targetLabelAlpha = this.isTracked ? 1 : 0;
-            this.labelAlpha += (this.targetLabelAlpha - this.labelAlpha) * 0.1;
-        } catch (error) {
-            console.error('Error updating particle:', error);
-            this._latest.set(this);
-            this.add(this._speed);
+        // 限制速度
+        const maxSpeed = 5 * (1 + activityFactor + tempFactor * 0.5);
+        if (this._speed.length() > maxSpeed) {
+            this._speed.normalize().scale(maxSpeed);
         }
-    },
-    getColor: function(temp, activity) {
-        var tempFactor = (temp - 36) / 1.5;
-        var activityFactor = Math.min(1, activity / 100);
-        tempFactor = Math.max(0, Math.min(1, tempFactor));
-        if (this.gender === 'male') {
-            var hue = 240 + 60 * tempFactor + 20 * activityFactor;
-            return `hsl(${hue}, 100%, ${50 + 20 * activityFactor}%)`;
+
+        // 缓慢减速
+        this._speed.scale(0.98);
+
+        // 更新标签透明度
+        if (this.isTracked) {
+            this.labelAlpha = Math.min(this.labelAlpha + 0.1, 1);
         } else {
-            var hue = 30 - 30 * tempFactor;
-            var saturation = 100;
-            var lightness = 50 + 20 * activityFactor;
-            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            this.labelAlpha = Math.max(this.labelAlpha - 0.1, 0);
         }
-    },
-    updateTrail: function(activity) {
-        if (Math.random() < 0.2) {
-            this.trail.push(this.clone());
-            var trailLength = Math.min(5, Math.floor(activity / 20));
-            while (this.trail.length > trailLength) {
-                this.trail.shift();
-            }
-        }
-    },
-    render: function(ctx) {
-        if (this.trail.length > 1) {
-            ctx.save();
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.3;
-            ctx.beginPath();
-            ctx.moveTo(this.trail[0].x, this.trail[0].y);
-            for (var i = 1; i < this.trail.length; i++) {
-                ctx.lineTo(this.trail[i].x, this.trail[i].y);
-            }
-            ctx.stroke();
-            ctx.restore();
-        }
-        ctx.save();
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        ctx.fill();
-        ctx.restore();
-        // Label rendering is now handled by renderLabels
-    },
-    renderTrackingInfo: function(ctx) {
-        // This function is no longer used as renderLabels handles all label rendering
-    }
-});
 
-/**
- * Render Labels with Collision Detection and Animation
- */
-function renderLabels(particles, ctx) {
+        // 处理刚释放的动画效果
+        if (this.justReleased && Date.now() - this.releaseTime > 500) {
+            this.justReleased = false;
+        }
+    },
+
+    render: function(ctx, currentTime) {
+        // 使用当前时间索引获取数据，确保颜色随时间变化
+        const timeIndex = Math.min(Math.floor(currentTime), this.data.length - 1);
+        const currentData = this.data[timeIndex] || { activity: 0, temp: 36 };
+        
+        // Check for estrus in female mice
+        let isEstrus = false;
+        if (this.gender === 'female' && currentData.estrus) {
+            isEstrus = true;
+        }
+
+        let baseHue, targetHue, tempRange, baseLightness, targetLightness;
+        if (this.gender === 'male') {
+            baseHue = 200; // More vibrant blue for low temp
+            targetHue = 240; // Deep blue for high temp
+            baseLightness = 85; // Much brighter for low temp
+            targetLightness = 25; // Darker for high temp
+            tempRange = [36, 38]; // 温度范围
+        } else {
+            baseHue = 40; // More yellow-orange for low temp
+            targetHue = 0; // Pure red for high temp
+            baseLightness = 80; // Brighter for low temp
+            targetLightness = 25; // Darker for high temp
+            tempRange = [36, 38]; // 温度范围
+        }
+        
+        // 计算温度在范围内的比例
+        const tempRatio = Math.max(0, Math.min(1, (currentData.temp - tempRange[0]) / (tempRange[1] - tempRange[0])));
+        
+        // 计算当前色相值和亮度值，实现平滑渐变
+        const hue = baseHue + (targetHue - baseHue) * tempRatio;
+        const lightness = baseLightness + (targetLightness - baseLightness) * tempRatio;
+
+        ctx.save();
+        
+        // 增大老鼠身体尺寸
+        const bodySize = this.radius * 2.5; // 增大老鼠尺寸
+        
+        // 绘制老鼠身体
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, bodySize, 0, Math.PI * 2, false);
+        ctx.fillStyle = `hsl(${hue}, 100%, ${lightness}%)`;
+        ctx.fill();
+        
+        // 绘制老鼠耳朵
+        const earSize = bodySize * 0.5;
+        // 左耳
+        ctx.beginPath();
+        ctx.ellipse(this.x - bodySize * 0.7, this.y - bodySize * 0.7, earSize, earSize * 0.6, Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+        // 右耳
+        ctx.beginPath();
+        ctx.ellipse(this.x + bodySize * 0.7, this.y - bodySize * 0.7, earSize, earSize * 0.6, -Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制眼睛
+        const eyeSize = bodySize * 0.2;
+        ctx.fillStyle = '#000';
+        // 左眼
+        ctx.beginPath();
+        ctx.arc(this.x - bodySize * 0.4, this.y - bodySize * 0.1, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        // 右眼
+        ctx.beginPath();
+        ctx.arc(this.x + bodySize * 0.4, this.y - bodySize * 0.1, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制鼻子
+        ctx.beginPath();
+        ctx.arc(this.x, this.y + bodySize * 0.2, eyeSize * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 绘制胡须
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        // 左边胡须
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(this.x - bodySize * 0.2, this.y + bodySize * 0.2);
+            ctx.lineTo(this.x - bodySize * 0.9, this.y + (i - 1) * bodySize * 0.2);
+            ctx.stroke();
+        }
+        // 右边胡须
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(this.x + bodySize * 0.2, this.y + bodySize * 0.2);
+            ctx.lineTo(this.x + bodySize * 0.9, this.y + (i - 1) * bodySize * 0.2);
+            ctx.stroke();
+        }
+        
+        // 添加尾巴
+        ctx.beginPath();
+        ctx.moveTo(this.x - bodySize * 0.5, this.y + bodySize * 0.8);
+        ctx.quadraticCurveTo(
+            this.x - bodySize * 1.2, 
+            this.y + bodySize * 1.2, 
+            this.x - bodySize * 1.5, 
+            this.y + bodySize * 0.5
+        );
+        ctx.lineWidth = bodySize * 0.15;
+        ctx.stroke();
+        
+        // 如果被跟踪，添加高亮效果
+        if (this.isTracked) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, bodySize * 1.2, 0, Math.PI * 2, false);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 添加ID标签
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.mouseId, this.x, this.y - bodySize * 1.3);
+        }
+        
+        // 如果刚被释放，添加发光效果
+        if (this.justReleased) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, bodySize * 1.8, 0, Math.PI * 2, false);
+            ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.3)`;
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+};
+
+// 渲染标签（带碰撞检测和动画）
+function renderLabels(mice, ctx, currentSimulationTime) {
     const labels = [];
 
     function isOverlapping(rect1, rect2) {
@@ -297,10 +319,10 @@ function renderLabels(particles, ctx) {
         return { x: x - width / 2, y: y - height - 10, width, height };
     }
 
-    particles.forEach((p) => {
+    mice.forEach((p) => {
         if (!p.isTracked || !p.data || p.data.length === 0) return;
 
-        const timeIndex = Math.floor(simulationTime) % dataset.length;
+        const timeIndex = Math.floor(currentSimulationTime) % p.data.length;
         const data = p.data[timeIndex] || { activity: 0, temp: 36 };
         const text = `Mouse ${p.mouseId}\nActivity: ${data.activity.toFixed(2)}\nTemp: ${data.temp.toFixed(2)}°C`;
         let x = p.x + 15;
@@ -325,13 +347,12 @@ function renderLabels(particles, ctx) {
         }
 
         if (overlap) {
-            console.warn(`Unable to position label for Mouse ${p.mouseId} without overlap; adjusting horizontally.`);
             x += 50;
             labelRect = getLabelDimensions(text, x, y, ctx);
         }
 
         ctx.save();
-        ctx.globalAlpha = p.labelAlpha; // Apply fade animation
+        ctx.globalAlpha = p.labelAlpha;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         ctx.fillRect(labelRect.x, labelRect.y, labelRect.width, labelRect.height);
         ctx.fillStyle = '#fff';
@@ -346,30 +367,370 @@ function renderLabels(particles, ctx) {
     });
 }
 
-/**
- * Initialization and Animation
- */
+// 初始化和动画
 (function() {
-    var BACKGROUND_DAY = '#B4D7E9',
-        BACKGROUND_NIGHT = '#0A0A20',
-        BACKGROUND_SUNSET = '#D35400',
-        BACKGROUND_SUNRISE = '#FFD700',
+    var BACKGROUND_COLOR = '#121212',
         PARTICLE_RADIUS = 5,
         G_POINT_RADIUS = 10,
         G_POINT_RADIUS_LIMITS = 65;
 
-    var canvas, context, bufferCvs, bufferCtx, screenWidth, screenHeight,
-        mouse = new Vector(), gravities = [], particles = [], grad,
-        dataset = [], simulationTime = 0, timeSpeed = 30,
-        selectedMouseIds = [], selectedGender = 'all', centerGravityPoint,
-        showLabels = true, hourlyCache = {}, lastUpdateTime = -1;
+    var canvas, context,
+        screenWidth, screenHeight,
+        mouse = new Vector(),
+        mice = [],
+        dataset = [],
+        simulationTime = 0,
+        timeSpeed = 30,
+        maxTime = 336, // 14天*24小时
+        isPaused = false,
+        simulationStarted = false; // Add flag to track if simulation has started
 
-    async function loadData() {
+    // 创建老鼠卡片
+    function createMouseCard(mouseId, gender) {
+        const container = gender === 'male' ? document.getElementById('male-mice') : document.getElementById('female-mice');
+        if (!container) return;
+
+        const card = document.createElement('div');
+        card.className = 'mouse-card';
+        card.setAttribute('data-mouse-id', mouseId);
+
+        const avatar = document.createElement('div');
+        avatar.className = `mouse-avatar ${gender}`;
+
+        const info = document.createElement('div');
+        info.className = 'mouse-info';
+        info.innerHTML = `
+            <div class="mouse-id">Mouse ${mouseId}</div>
+            <div class="mouse-gender">${gender === 'male' ? 'Male' : 'Female'}</div>
+        `;
+
+        card.appendChild(avatar);
+        card.appendChild(info);
+
+        // 添加点击事件
+        card.addEventListener('click', function() {
+            const mouseInExperiment = mice.find(m => m.mouseId === mouseId);
+            
+            if (mouseInExperiment) {
+                // 如果老鼠已经在实验中，切换跟踪状态
+                mouseInExperiment.isTracked = !mouseInExperiment.isTracked;
+                
+                // 更新卡片样式以显示跟踪状态
+                if (mouseInExperiment.isTracked) {
+                    this.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.8)';
+                    this.style.border = '2px solid #fff';
+                } else {
+                    this.style.boxShadow = '';
+                    this.style.border = '';
+                }
+            } else {
+                // Start the simulation if this is the first mouse
+                if (!simulationStarted && mice.length === 0) {
+                    simulationStarted = true;
+                    simulationTime = 0; // Reset time when first mouse is selected
+                }
+                
+                // 如果老鼠不在实验中，释放它并设置为跟踪状态
+                releaseMouse(mouseId, gender);
+                this.style.opacity = '0.5';
+                
+                // 设置新释放的老鼠为跟踪状态
+                setTimeout(() => {
+                    const newMouse = mice.find(m => m.mouseId === mouseId);
+                    if (newMouse) {
+                        newMouse.isTracked = true;
+                        this.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.8)';
+                        this.style.border = '2px solid #fff';
+                    }
+                }, 100);
+            }
+        });
+
+        container.appendChild(card);
+    }
+
+    // 放出老鼠
+    function releaseMouse(mouseId, gender) {
+        const mouseData = dataset.filter(d => d.mouseId === mouseId);
+        if (mouseData.length === 0) return;
+
+        const mainBox = document.getElementById('main-box');
+        const rect = mainBox.getBoundingClientRect();
+
+        // 修改初始位置，使老鼠从左侧（黑箱方向）出现
+        const newMouse = new Mouse(
+            PARTICLE_RADIUS * 3, // 从左侧边缘出现
+            Math.random() * (rect.height - PARTICLE_RADIUS * 4) + PARTICLE_RADIUS * 2,
+            PARTICLE_RADIUS * 1.2, // 增大老鼠尺寸
+            mouseId,
+            gender,
+            mouseData
+        );
+
+        // 给老鼠一个向右的初始速度
+        newMouse._speed.x = 3 + Math.random() * 2;
+        newMouse._speed.y = Math.random() * 2 - 1;
+
+        newMouse.justReleased = true;
+        newMouse.releaseTime = Date.now();
+        mice.push(newMouse);
+
+        // 播放开盒子动画
+        const card = document.querySelector(`[data-mouse-id="${mouseId}"]`);
+        if (card) {
+            card.classList.add('mouse-release');
+        }
+    }
+
+    // 初始化老鼠列表
+    function initMouseList() {
+        const maleMice = dataset.filter(d => d.gender === 'male');
+        const femaleMice = dataset.filter(d => d.gender === 'female');
+
+        const uniqueMaleMice = [...new Set(maleMice.map(d => d.mouseId))];
+        const uniqueFemaleMice = [...new Set(femaleMice.map(d => d.mouseId))];
+
+        uniqueMaleMice.forEach(mouseId => createMouseCard(mouseId, 'male'));
+        uniqueFemaleMice.forEach(mouseId => createMouseCard(mouseId, 'female'));
+    }
+
+    // 调整大小
+    function resize() {
+        const mainBox = document.getElementById('main-box');
+        const rect = mainBox.getBoundingClientRect();
+        screenWidth = rect.width;
+        screenHeight = rect.height;
+
+        canvas.width = screenWidth;
+        canvas.height = screenHeight;
+    }
+
+    // 更新和渲染
+    function update() {
+        if (!isPaused && simulationStarted) { // Only update time if simulation has started
+            const newTime = simulationTime + timeSpeed * 0.001;
+            simulationTime = Math.min(newTime, maxTime - 0.01);
+            
+            // Pause the simulation when it reaches the maximum time (14 days)
+            if (simulationTime >= maxTime - 0.01) {
+                isPaused = true;
+                const pauseButton = document.getElementById('pauseButton');
+                const resetButton = document.getElementById('resetButton');
+                if (pauseButton) {
+                    pauseButton.textContent = 'Resume';
+                }
+                // Add pulsing effect to the reset button to draw attention
+                if (resetButton && !resetButton.classList.contains('pulse-attention')) {
+                    resetButton.classList.add('pulse-attention');
+                    // Add tooltip to suggest resetting
+                    resetButton.title = "Experiment complete! Click to reset and start a new experiment";
+                }
+            }
+            
+            mice.forEach(mouse => {
+                mouse.update(Math.floor(simulationTime), {
+                    x: 0,
+                    y: 0,
+                    width: screenWidth,
+                    height: screenHeight
+                }, mice);
+            });
+        }
+
+        // 更新时间显示
+        const timeDisplay = document.getElementById('time-display');
+        if (timeDisplay) {
+            if (!simulationStarted) {
+                timeDisplay.textContent = 'Day 1, 00:00'; // Default display before simulation starts
+            } else {
+                const totalHours = Math.floor(simulationTime);
+                const days = Math.floor(totalHours / 24) + 1;
+                const hours = totalHours % 24;
+                const minutes = Math.floor((simulationTime - Math.floor(simulationTime)) * 60);
+                
+                // Check if it's an estrus day (days 4, 8, 12)
+                let timeText = `Day ${days}, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                
+                // Add estrus indicator for days 4, 8, and 12
+                if (days === 4 || days === 8 || days === 12) {
+                    timeText += ' ♀️ Estrus Day';
+                    
+                    // Add special styling to make it stand out
+                    timeDisplay.style.color = '#FF69B4'; // Pink color for estrus days
+                    timeDisplay.style.fontWeight = 'bold';
+                    
+                    // Add a subtle animation if it's the start of the day (first hour)
+                    if (hours === 0 && minutes < 10) {
+                        timeDisplay.style.animation = 'pulse 1s infinite';
+                    } else {
+                        timeDisplay.style.animation = 'none';
+                    }
+                } else {
+                    // Reset to normal styling for non-estrus days
+                    timeDisplay.style.color = '#fff';
+                    timeDisplay.style.fontWeight = 'normal';
+                    timeDisplay.style.animation = 'none';
+                }
+                
+                timeDisplay.textContent = timeText;
+            }
+        }
+    }
+
+    function render() {
+        // Create a smooth transition between day and night
+        const hours = Math.floor(simulationTime) % 24;
+        const minutes = (simulationTime - Math.floor(simulationTime)) * 60;
+        
+        // Calculate transition periods (dawn: 5-7am, dusk: 17-19pm)
+        let dayProgress = 0;
+        
+        if (hours >= 7 && hours < 17) {
+            // Full daylight
+            dayProgress = 1;
+        } else if (hours >= 5 && hours < 7) {
+            // Dawn transition (5am-7am)
+            dayProgress = (hours - 5) / 2 + (minutes / 120);
+        } else if (hours >= 17 && hours < 19) {
+            // Dusk transition (5pm-7pm)
+            dayProgress = 1 - ((hours - 17) / 2 + (minutes / 120));
+        } else {
+            // Full night
+            dayProgress = 0;
+        }
+        
+        // Interpolate between night and day colors
+        const nightColor = { r: 10, g: 10, b: 30 }; // Darker blue-black for night
+        const dayColor = { r: 255, g: 255, b: 240 }; // Slightly warmer white for day
+        
+        const r = Math.round(nightColor.r + (dayColor.r - nightColor.r) * dayProgress);
+        const g = Math.round(nightColor.g + (dayColor.g - nightColor.g) * dayProgress);
+        const b = Math.round(nightColor.b + (dayColor.b - nightColor.b) * dayProgress);
+        
+        // Set background color based on interpolated value
+        context.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        context.fillRect(0, 0, screenWidth, screenHeight);
+        
+        // Position the sun/moon in the middle of the canvas but higher up
+        const centerX = screenWidth / 2;
+        const centerY = screenHeight / 11; // Moved higher (1/11 from the top)
+        
+        // Add sun/moon with appropriate opacity based on time of day
+        if (dayProgress > 0) {
+            // Draw sun with opacity based on dayProgress
+            const sunRadius = 25; // Larger size for center display
+            
+            context.globalAlpha = dayProgress;
+            context.beginPath();
+            context.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
+            context.fillStyle = '#FFDD00'; // Brighter yellow for sun
+            context.fill();
+            
+            // Sun rays with opacity
+            context.strokeStyle = '#FFA500'; // Orange rays for more contrast
+            context.lineWidth = 3;
+            for (let i = 0; i < 12; i++) {
+                const angle = i * Math.PI / 6;
+                context.beginPath();
+                context.moveTo(centerX + Math.cos(angle) * sunRadius, centerY + Math.sin(angle) * sunRadius);
+                context.lineTo(centerX + Math.cos(angle) * (sunRadius + 20), centerY + Math.sin(angle) * (sunRadius + 20));
+                context.stroke();
+            }
+            context.globalAlpha = 1;
+        }
+        
+        if (dayProgress < 1) {
+            // Draw moon with opacity based on night progress
+            const moonOpacity = 1 - dayProgress;
+            const moonRadius = 25; // Larger size for center display
+            
+            context.globalAlpha = moonOpacity;
+            context.beginPath();
+            context.arc(centerX, centerY, moonRadius, 0, Math.PI * 2);
+            context.fillStyle = '#E6F0FF'; // Slightly bluer white for moon
+            context.fill();
+            
+            // Moon shadow to create crescent effect
+            context.beginPath();
+            context.arc(centerX - 10, centerY, moonRadius - 5, 0, Math.PI * 2);
+            context.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            context.fill();
+            
+            context.globalAlpha = 1;
+        }
+        
+        mice.forEach(mouse => mouse.render(context, simulationTime));
+        renderLabels(mice, context, simulationTime);
+    }
+
+    function animate() {
+        update();
+        render();
+        requestAnimationFrame(animate);
+    }
+
+    // 设置控制按钮事件监听器
+    function setupControlListeners() {
+        const speedControl = document.getElementById('speedControl');
+        const pauseButton = document.getElementById('pauseButton');
+        const resetButton = document.getElementById('resetButton');
+
+        if (speedControl) {
+            speedControl.addEventListener('change', function() {
+                if (!isPaused) {
+                    timeSpeed = parseFloat(this.value) * 30;
+                }
+            });
+        }
+
+        if (pauseButton) {
+            pauseButton.addEventListener('click', function() {
+                isPaused = !isPaused;
+                this.textContent = isPaused ? 'Resume' : 'Pause/Resume';
+            });
+        }
+
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                simulationTime = 0;
+                simulationStarted = false; // Reset the simulation started flag
+                isPaused = false; // Reset the pause state
+                mice = [];
+                
+                // Reset the pause button text
+                const pauseButton = document.getElementById('pauseButton');
+                if (pauseButton) {
+                    pauseButton.textContent = 'Pause/Resume';
+                }
+                
+                // Remove the pulse-attention class if it exists
+                if (this.classList.contains('pulse-attention')) {
+                    this.classList.remove('pulse-attention');
+                    this.title = "Reset Experiment";
+                }
+                
+                document.querySelectorAll('.mouse-card').forEach(card => {
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                    card.classList.remove('mouse-release');
+                    card.style.boxShadow = '';
+                    card.style.border = '';
+                });
+            });
+        }
+    }
+
+    // 初始化
+    async function init() {
+        canvas = document.getElementById('c');
+        if (!canvas) return;
+        context = canvas.getContext('2d');
+
         try {
             const response = await fetch('processed_data.json');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
-            dataset = data.map(d => ({
+            dataset = await response.json();
+            dataset = dataset.map(d => ({
                 ...d,
                 mouseId: d.mouseId || d.MouseID || d.mouse_id,
                 gender: d.gender || d.Gender,
@@ -377,486 +738,17 @@ function renderLabels(particles, ctx) {
                 temp: typeof d.temp === 'string' ? parseFloat(d.temp) : d.temp,
                 Time: d.Time || d.time
             }));
-            console.log("Loaded dataset:", dataset);
-            console.log("Dataset length:", dataset.length);
-            initParticles();
-            createCenterGravityPoint();
-            createMouseCheckboxes();
+
+            window.addEventListener('resize', resize);
+            resize();
+            initMouseList();
+            setupControlListeners();
+            animate();
+
         } catch (error) {
-            console.error("Error loading data:", error);
-            try {
-                console.log("Attempting fallback data loading method...");
-                const response = await fetch('processed_data_min.json.gz');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const compressedData = await response.arrayBuffer();
-                const decompressedData = await new Response(compressedData).blob();
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        dataset = JSON.parse(event.target.result);
-                        dataset = dataset.map(d => ({
-                            ...d,
-                            mouseId: d.mouseId || d.MouseID || d.mouse_id,
-                            gender: d.gender || d.Gender,
-                            activity: typeof d.activity === 'string' ? parseFloat(d.activity) : d.activity,
-                            temp: typeof d.temp === 'string' ? parseFloat(d.temp) : d.temp,
-                            Time: d.Time || d.time
-                        }));
-                        console.log("Loaded dataset (fallback):", dataset);
-                        console.log("Dataset length (fallback):", dataset.length);
-                        initParticles();
-                        createCenterGravityPoint();
-                        createMouseCheckboxes();
-                    } catch (parseError) {
-                        console.error("Error parsing JSON data:", parseError);
-                    }
-                };
-                reader.onerror = function() {
-                    console.error("Error reading file:", reader.error);
-                };
-                reader.readAsText(decompressedData);
-            } catch (fallbackError) {
-                console.error("All data loading methods failed:", fallbackError);
-            }
+            console.error('Error loading data:', error);
         }
     }
 
-    function createCenterGravityPoint() {
-        const centerX = screenWidth / 2;
-        const centerY = screenHeight / 2;
-        centerGravityPoint = new GravityPoint(centerX, centerY, G_POINT_RADIUS * 2, {
-            particles: particles,
-            gravities: gravities
-        });
-        centerGravityPoint.gravity = 0.02;
-        gravities.push(centerGravityPoint);
-    }
-
-    function initParticles() {
-        const uniqueMice = [...new Set(dataset.map(d => d.mouseId))];
-        particles = uniqueMice
-            .filter(mouseId => {
-                const mouseData = dataset.find(d => d.mouseId === mouseId);
-                const genderMatch = selectedGender === 'all' || mouseData.gender === selectedGender;
-                const idMatch = selectedMouseIds.length === 0 || selectedMouseIds.includes(mouseId);
-                return genderMatch && idMatch;
-            })
-            .map(mouseId => {
-                const mouseData = dataset.filter(d => d.mouseId === mouseId);
-                const gender = mouseData[0].gender;
-                return new Particle(
-                    Math.random() * (screenWidth - PARTICLE_RADIUS * 2) + PARTICLE_RADIUS,
-                    Math.random() * (screenHeight - PARTICLE_RADIUS * 2) + PARTICLE_RADIUS,
-                    PARTICLE_RADIUS,
-                    mouseId,
-                    gender,
-                    mouseData
-                );
-            });
-        console.log("Particles created:", particles.length);
-    }
-
-    function createMouseCheckboxes() {
-        const controls = document.getElementById('controls');
-        const checkboxContainer = document.createElement('div');
-        checkboxContainer.id = 'mouseCheckboxes';
-        const uniqueMice = [...new Set(dataset.map(d => d.mouseId))];
-        uniqueMice.forEach(mouseId => {
-            const mouseData = dataset.find(d => d.mouseId === mouseId);
-            const label = document.createElement('label');
-            label.style.display = 'block';
-            label.style.color = '#fff';
-            label.style.marginBottom = '5px';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = mouseId;
-            checkbox.id = `mouse-${mouseId}`;
-            checkbox.style.marginRight = '5px';
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(`Mouse ${mouseId} (${mouseData.gender})`));
-            checkboxContainer.appendChild(label);
-        });
-        controls.appendChild(checkboxContainer);
-    }
-
-    function filterMice() {
-        const checkboxes = document.querySelectorAll('#mouseCheckboxes input[type="checkbox"]:checked');
-        const genderSelect = document.getElementById('genderFilter');
-        const newSelectedMouseIds = Array.from(checkboxes).map(cb => cb.value);
-        const newSelectedGender = genderSelect.value;
-        
-        if (JSON.stringify(selectedMouseIds) === JSON.stringify(newSelectedMouseIds) && 
-            selectedGender === newSelectedGender) {
-            return;
-        }
-        
-        selectedMouseIds = newSelectedMouseIds;
-        selectedGender = newSelectedGender;
-        
-        requestAnimationFrame(() => {
-            initParticles();
-            if (centerGravityPoint) {
-                const index = gravities.indexOf(centerGravityPoint);
-                if (index > -1) gravities.splice(index, 1);
-            }
-            createCenterGravityPoint();
-        });
-    }
-
-    function calculateHourlyAverage(mouseId, currentTimeIndex) {
-        if (lastUpdateTime !== Math.floor(simulationTime / 60)) {
-            hourlyCache = {};
-            lastUpdateTime = Math.floor(simulationTime / 60);
-        }
-        if (!hourlyCache[mouseId]) {
-            const mouseData = dataset.filter(d => d.mouseId === mouseId);
-            const startIndex = Math.max(0, currentTimeIndex - 60);
-            const hourlyData = mouseData.slice(startIndex, currentTimeIndex + 1);
-            const totalActivity = hourlyData.reduce((sum, d) => sum + (d.activity || 0), 0);
-            hourlyCache[mouseId] = hourlyData.length ? totalActivity / hourlyData.length : 0;
-        }
-        return hourlyCache[mouseId];
-    }
-
-    function updateRanking() {
-        try {
-            if (Math.floor(simulationTime * 60) % 60 !== 0) return;
-            const rankingList = document.getElementById('ranking-list');
-            if (!rankingList) return;
-            if (!dataset || dataset.length === 0 || !particles || particles.length === 0) return;
-            const timeIndex = Math.floor(simulationTime) % dataset.length;
-            const currentHourlyActivities = particles
-                .filter(p => p && p.mouseId)
-                .map(p => ({
-                    mouseId: p.mouseId,
-                    avgActivity: calculateHourlyAverage(p.mouseId, timeIndex)
-                }))
-                .filter(item => !isNaN(item.avgActivity));
-            if (currentHourlyActivities.length === 0) return;
-            const top3 = currentHourlyActivities.sort((a, b) => b.avgActivity - a.avgActivity).slice(0, 3);
-            rankingList.innerHTML = '';
-            top3.forEach((mouse, index) => {
-                try {
-                    const li = document.createElement('li');
-                    const mouseImg = document.createElement('img');
-                    mouseImg.src = `https://api.dicebear.com/6.x/miniavs/svg?seed=${mouse.mouseId}`;
-                    mouseImg.style.width = '20px';
-                    mouseImg.style.height = '20px';
-                    mouseImg.style.marginRight = '10px';
-                    li.appendChild(mouseImg);
-                    li.innerHTML += `${index + 1}. Mouse ${mouse.mouseId} - Avg Activity: <span style="color: #FF1493; font-weight: bold;">${mouse.avgActivity.toFixed(2)}</span>`;
-                    li.style.animation = `bounce 0.5s ease-in-out ${index * 0.1}s`;
-                    rankingList.appendChild(li);
-                } catch (itemError) {
-                    console.error('Error creating ranking item:', itemError);
-                }
-            });
-        } catch (error) {
-            console.error('Error updating ranking:', error);
-        }
-    }
-
-    function formatTime(minutes) {
-        const days = Math.floor(minutes / 1440) + 1;
-        const hours = Math.floor((minutes % 1440) / 60);
-        const mins = minutes % 60;
-        return `Day ${days}, ${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    }
-
-    function toggleTracking() {
-        const trackButton = document.getElementById('trackButton');
-        if (!trackButton) return;
-        const isTracking = trackButton.getAttribute('data-tracking') === 'true';
-        const newTrackingState = !isTracking;
-        trackButton.setAttribute('data-tracking', newTrackingState);
-        trackButton.textContent = isTracking ? 'Track Selected Mouse' : 'Stop Tracking';
-        if (particles.length === 0 || selectedMouseIds.length === 0) {
-            console.warn("No particles or mice selected. Please filter first or select mice.");
-            trackButton.setAttribute('data-tracking', 'false');
-            trackButton.textContent = 'Track Selected Mouse';
-            return;
-        }
-        requestAnimationFrame(() => {
-            particles.forEach(p => {
-                p.isTracked = newTrackingState && selectedMouseIds.includes(p.mouseId);
-            });
-        });
-    }
-
-    function resize() {
-        screenWidth = canvas.width = window.innerWidth;
-        screenHeight = canvas.height = window.innerHeight;
-        bufferCvs.width = screenWidth;
-        bufferCvs.height = screenHeight;
-        context = canvas.getContext('2d');
-        bufferCtx = bufferCvs.getContext('2d');
-        var cx = canvas.width * 0.5, cy = canvas.height * 0.5;
-        grad = context.createRadialGradient(cx, cy, 0, cx, cy, Math.sqrt(cx * cx + cy * cy));
-        grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
-    }
-
-    function mouseMove(e) {
-        mouse.set(e.clientX, e.clientY);
-        var i, g, hit = false;
-        for (i = gravities.length - 1; i >= 0; i--) {
-            g = gravities[i];
-            if ((!hit && g.hitTest(mouse)) || g.dragging) g.isMouseOver = hit = true;
-            else g.isMouseOver = false;
-        }
-        canvas.style.cursor = hit ? 'pointer' : 'default';
-    }
-
-    function mouseDown(e) {
-        e.preventDefault();
-        for (var i = gravities.length - 1; i >= 0; i--) {
-            if (gravities[i].isMouseOver) {
-                gravities[i].startDrag(mouse);
-                return;
-            }
-        }
-        gravities.push(new GravityPoint(e.clientX, e.clientY, G_POINT_RADIUS, { particles: particles, gravities: gravities }));
-    }
-
-    function mouseUp(e) {
-        for (var i = 0, len = gravities.length; i < len; i++) {
-            if (gravities[i].dragging) {
-                gravities[i].endDrag();
-                break;
-            }
-        }
-    }
-
-    function doubleClick(e) {
-        for (var i = gravities.length - 1; i >= 0; i--) {
-            if (gravities[i].isMouseOver) {
-                gravities[i].collapse();
-                break;
-            }
-        }
-    }
-
-    canvas = document.getElementById('c');
-    bufferCvs = document.createElement('canvas');
-
-    window.addEventListener('resize', resize, false);
-    resize();
-
-    canvas.addEventListener('mousemove', mouseMove, false);
-    canvas.addEventListener('mousedown', mouseDown, false);
-    canvas.addEventListener('mouseup', mouseUp, false);
-    canvas.addEventListener('dblclick', doubleClick, false);
-
-    document.getElementById('filterButton')?.addEventListener('click', filterMice);
-    document.getElementById('trackButton')?.addEventListener('click', toggleTracking);
-
-    loadData().then(() => {
-        if (particles.length === 0) console.warn("No particles initialized. Check dataset or filter conditions.");
-        var loop = function() {
-            try {
-                simulationTime += timeSpeed / 60;
-                if (!dataset || dataset.length === 0) {
-                    console.warn("Dataset is empty or undefined");
-                    requestAnimationFrame(loop);
-                    return;
-                }
-                var timeIndex = Math.floor(simulationTime) % dataset.length;
-                var dayCycle = timeIndex % 1440;
-                var dayProgress = dayCycle / 1440;
-
-                var backgroundColor;
-                if (dayCycle < 240) {
-                    backgroundColor = BACKGROUND_NIGHT;
-                } else if (dayCycle < 480) {
-                    backgroundColor = interpolateColor(BACKGROUND_NIGHT, BACKGROUND_DAY, (dayCycle - 240) / 240);
-                } else if (dayCycle < 720) {
-                    backgroundColor = BACKGROUND_DAY;
-                } else if (dayCycle < 960) {
-                    backgroundColor = BACKGROUND_DAY;
-                } else if (dayCycle < 1100) {
-                    backgroundColor = interpolateColor(BACKGROUND_DAY, BACKGROUND_SUNSET, (dayCycle - 960) / 240);
-                } else {
-                    backgroundColor = interpolateColor(BACKGROUND_SUNSET, BACKGROUND_NIGHT, (dayCycle - 1100) / 240);
-                }
-
-                if (!context) {
-                    console.error("Canvas context is not available");
-                    requestAnimationFrame(loop);
-                    return;
-                }
-
-                context.fillStyle = backgroundColor;
-                context.fillRect(0, 0, screenWidth, screenHeight);
-                context.fillStyle = grad;
-                context.fillRect(0, 0, screenWidth, screenHeight);
-
-                try {
-                    for (var i = 0, len = gravities.length; i < len; i++) {
-                        var g = gravities[i];
-                        if (!g) continue;
-                        if (g.dragging) g.drag(mouse);
-                        g.render(context);
-                        if (g.destroyed) { gravities.splice(i, 1); len--; i--; }
-                    }
-                } catch (gravityError) {
-                    console.error("Error processing gravity points:", gravityError);
-                }
-
-                if (!bufferCtx) {
-                    console.error("Buffer context is not available");
-                    requestAnimationFrame(loop);
-                    return;
-                }
-
-                bufferCtx.save();
-                bufferCtx.globalCompositeOperation = 'destination-out';
-                bufferCtx.globalAlpha = 0.25;
-                bufferCtx.fillRect(0, 0, screenWidth, screenHeight);
-                bufferCtx.restore();
-
-                try {
-                    bufferCtx.save();
-                    for (var i = 0, len = particles.length; i < len; i++) {
-                        var p = particles[i];
-                        if (!p) continue;
-                        if (p.x > -50 && p.x < screenWidth + 50 && p.y > -50 && p.y < screenHeight + 50) {
-                            try {
-                                p.update(timeIndex);
-                                p.render(bufferCtx);
-                            } catch (particleError) {
-                                console.error("Error updating/rendering particle:", particleError);
-                            }
-                        } else {
-                            try {
-                                p.update(timeIndex);
-                            } catch (particleError) {
-                                console.error("Error updating particle:", particleError);
-                            }
-                        }
-                    }
-                    bufferCtx.restore();
-                } catch (particlesError) {
-                    console.error("Error processing particles:", particlesError);
-                }
-
-                context.drawImage(bufferCvs, 0, 0);
-
-                try {
-                    context.save();
-                    context.fillStyle = '#fff';
-                    context.font = 'bold 24px Montserrat';
-                    context.textAlign = 'center';
-                    context.fillText('Mouse Activity & Temp Visualization', screenWidth / 2, 50);
-                    const totalMinutes = Math.floor(simulationTime);
-                    const timeStr = formatTime(totalMinutes);
-                    context.font = '16px Montserrat';
-                    context.textAlign = 'right';
-                    context.fillText(timeStr, screenWidth - 20, 70);
-                    context.textAlign = 'left';
-                    try {
-                        renderLabels(particles, context); // Replaced drawSelectedMouseData
-                    } catch (dataError) {
-                        console.error("Error rendering labels:", dataError);
-                    }
-                    try {
-                        updateLegend();
-                    } catch (legendError) {
-                        console.error("Error updating legend:", legendError);
-                    }
-                    context.restore();
-                } catch (uiError) {
-                    console.error("Error rendering UI elements:", uiError);
-                }
-
-                try {
-                    updateRanking();
-                } catch (rankingError) {
-                    console.error("Error updating ranking:", rankingError);
-                }
-            } catch (error) {
-                console.error("Critical error in animation loop:", error);
-            }
-            requestAnimationFrame(loop);
-        };
-        loop();
-    }).catch(error => {
-        console.error("Error loading data:", error);
-        var loop = function() {
-            console.warn("Running in limited mode due to data loading failure");
-            requestAnimationFrame(loop);
-        };
-        loop();
-    });
+    init();
 })();
-
-function interpolateColor(color1, color2, factor) {
-    var r1 = parseInt(color1.substr(1, 2), 16);
-    var g1 = parseInt(color1.substr(3, 2), 16);
-    var b1 = parseInt(color1.substr(5, 2), 16);
-    var r2 = parseInt(color2.substr(1, 2), 16);
-    var g2 = parseInt(color2.substr(3, 2), 16);
-    var b2 = parseInt(color2.substr(5, 2), 16);
-    var r = Math.round(r1 + (r2 - r1) * factor);
-    var g = Math.round(g1 + (g2 - g1) * factor);
-    var b = Math.round(b1 + (b2 - b1) * factor);
-    return `rgb(${r}, ${g}, ${b})`;
-}
-
-function updateLegend() {
-    try {
-        const legendElement = document.getElementById('legend');
-        if (!legendElement) return;
-        if (typeof dataset === 'undefined' || !Array.isArray(dataset) || dataset.length === 0) return;
-        if (!Array.isArray(particles) || particles.length === 0) return;
-        const timeIndex = Math.floor(simulationTime) % dataset.length;
-        const currentData = dataset.filter(d => d.Time === dataset[timeIndex].Time);
-        if (currentData.length > 0) {
-            const maleData = currentData.filter(d => d.gender === 'male');
-            const femaleData = currentData.filter(d => d.gender === 'female');
-            const maleTempRange = maleData.reduce((range, d) => {
-                if (d.temp) {
-                    range.min = Math.min(range.min, d.temp);
-                    range.max = Math.max(range.max, d.temp);
-                }
-                return range;
-            }, { min: Infinity, max: -Infinity });
-            const femaleTempRange = femaleData.reduce((range, d) => {
-                if (d.temp) {
-                    range.min = Math.min(range.min, d.temp);
-                    range.max = Math.max(range.max, d.temp);
-                }
-                return range;
-            }, { min: Infinity, max: -Infinity });
-            const maleLowElement = legendElement.querySelector('div:nth-child(2)');
-            const maleHighElement = legendElement.querySelector('div:nth-child(3)');
-            const femaleLowElement = legendElement.querySelector('div:nth-child(4)');
-            const femaleHighElement = legendElement.querySelector('div:nth-child(5)');
-            const minMaleTemp = maleTempRange.min !== Infinity ? maleTempRange.min.toFixed(2) : '36.00';
-            const maxMaleTemp = maleTempRange.max !== -Infinity ? maleTempRange.max.toFixed(2) : '37.50';
-            const minFemaleTemp = femaleTempRange.min !== Infinity ? femaleTempRange.min.toFixed(2) : '36.00';
-            const maxFemaleTemp = femaleTempRange.max !== -Infinity ? femaleTempRange.max.toFixed(2) : '37.50';
-            const maleLowTempHue = 240;
-            const maleHighTempHue = 300;
-            const femaleLowTempHue = 30;
-            const femaleHighTempHue = 0;
-            if (maleLowElement) {
-                maleLowElement.innerHTML = 
-                    `<div class="color-box" style="background: hsl(${maleLowTempHue}, 100%, 50%)"></div>Male (${minMaleTemp}°C)`;
-            }
-            if (maleHighElement) {
-                maleHighElement.innerHTML = 
-                    `<div class="color-box" style="background: hsl(${maleHighTempHue}, 100%, 50%)"></div>Male (${maxMaleTemp}°C)`;
-            }
-            if (femaleLowElement) {
-                femaleLowElement.innerHTML = 
-                    `<div class="color-box" style="background: hsl(${femaleLowTempHue}, 100%, 50%)"></div>Female (${minFemaleTemp}°C)`;
-            }
-            if (femaleHighElement) {
-                femaleHighElement.innerHTML = 
-                    `<div class="color-box" style="background: hsl(${femaleHighTempHue}, 100%, 50%)"></div>Female (${maxFemaleTemp}°C)`;
-            }
-        }
-    } catch (error) {
-        console.error("Error updating legend:", error);
-    }
-}
