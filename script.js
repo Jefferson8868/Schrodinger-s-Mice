@@ -826,6 +826,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('time-display').style.display = 'block';
         document.getElementById('controls').style.display = 'block';
         document.getElementById('legend').style.display = 'block';
+        // Trigger a resize event to recalculate the canvas dimensions
+        window.dispatchEvent(new Event('resize'));
     });
 
     // Rewatch Explanation: hide simulation UI and restart the explanation sequence
