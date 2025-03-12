@@ -452,8 +452,6 @@ Particle.prototype = (function(o) {
     canvas.addEventListener('dblclick', doubleClick, false);
 
 
-    // GUI
-
     gui = new dat.GUI();
     gui.add(control, 'particleNum', 0, 500).step(1).name('Particle Num').onChange(function() {
         var n = (control.particleNum | 0) - particles.length;
@@ -464,9 +462,6 @@ Particle.prototype = (function(o) {
     });
     gui.add(GravityPoint, 'interferenceToPoint').name('Interference Between Point');
     gui.close();
-
-
-    // Start Update
 
     var loop = function() {
         var i, len, g, p;
@@ -495,10 +490,6 @@ Particle.prototype = (function(o) {
         bufferCtx.fillRect(0, 0, screenWidth, screenHeight);
         bufferCtx.restore();
 
-        // パーティクルをバッファに描画
-        // for (i = 0, len = particles.length; i < len; i++) {
-        //     particles[i].render(bufferCtx);
-        // }
         len = particles.length;
         bufferCtx.save();
         bufferCtx.fillStyle = bufferCtx.strokeStyle = '#fff';
@@ -520,8 +511,6 @@ Particle.prototype = (function(o) {
         }
         bufferCtx.fill();
         bufferCtx.restore();
-
-        // バッファをキャンバスに描画
         context.drawImage(bufferCvs, 0, 0);
 
         requestAnimationFrame(loop);

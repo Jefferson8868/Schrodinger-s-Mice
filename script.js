@@ -75,27 +75,22 @@ function Mouse(x, y, radius, mouseId, gender, data) {
 
 Mouse.prototype = {
     update: function(timeIndex, bounds, mice) {
-        // 确保timeIndex不超过数据长度
         const safeTimeIndex = Math.min(timeIndex, this.data.length - 1);
         const currentData = this.data[safeTimeIndex] || { activity: 0, temp: 36 };
         
-        // 如果activity为0，停止移动
         if (currentData.activity === 0) {
             this._speed = new Vector(0, 0);
             return;
         }
 
-        // 基于activity和temperature添加随机移动
         const activityFactor = currentData.activity / 100;
         const tempFactor = (currentData.temp - 36) / 1.5;
         const randomMove = Vector.random().scale(activityFactor * 2 + tempFactor);
         this._speed.add(randomMove);
 
-        // 更新位置
         this.x += this._speed.x;
         this.y += this._speed.y;
 
-        // 边界检查
         if (this.x < bounds.x + this.radius) {
             this.x = bounds.x + this.radius;
             this._speed.x *= -0.5;
@@ -199,70 +194,54 @@ Mouse.prototype = {
     },
 
     render: function(ctx, currentTime) {
-        // 使用当前时间索引获取数据，确保颜色随时间变化
         const timeIndex = Math.min(Math.floor(currentTime), this.data.length - 1);
         const currentData = this.data[timeIndex] || { activity: 0, temp: 36 };
         
         // Check for estrus in female mice
         let isEstrus = false;
-        if (this.gender === 'female' && currentData.estrus) {
-            isEstrus = true;
+        if (this.gender === 'female') {
+            const currentDay = Math.floor(timeIndex / 24) + 1;
+            isEstrus = (currentDay === 4 || currentDay === 8 || currentDay === 12);
         }
 
         let baseHue, targetHue, baseLightness, targetLightness, baseSaturation, targetSaturation;
         if (this.gender === 'male') {
-            // 使用index.html中定义的颜色：从hsl(200, 100%, 85%)到hsl(240, 100%, 25%)
-            baseHue = 200; // 浅蓝色为低温
-            targetHue = 240; // 深蓝色为高温
-            baseLightness = 85; // 更亮的低温
-            targetLightness = 25; // 更暗的高温
-            baseSaturation = 100; // 饱和度保持100%
-            targetSaturation = 100; // 饱和度保持100%
+            baseHue = 195; 
+            targetHue = 240;
+            baseLightness = 90;
+            targetLightness = 20;
+            baseSaturation = 100;
+            targetSaturation = 100; 
         } else {
-            // 使用index.html中定义的颜色：从hsl(40, 100%, 80%)到hsl(0, 100%, 25%)
-            baseHue = 40; // 黄色为低温
-            targetHue = 0; // 红色为高温
-            baseLightness = 80; // 更亮的低温
-            targetLightness = 25; // 更暗的高温
-            baseSaturation = 100; // 饱和度保持100%
-            targetSaturation = 100; // 饱和度保持100%
+            baseHue = 45; 
+            targetHue = 0; 
+            baseLightness = 85; 
+            targetLightness = 20; 
+            baseSaturation = 100; 
+            targetSaturation = 100; 
         }
         
-        // 获取每只老鼠自己的温度范围
         const tempRange = this.getTempRange();
         
-        // 计算温度在范围内的比例
         const tempRatio = Math.max(0, Math.min(1, (currentData.temp - tempRange[0]) / (tempRange[1] - tempRange[0])));
         
-        // 使用更强的非线性映射使颜色变化更加明显
-        // 指数更小使颜色变化更加剧烈
-        const enhancedTempRatio = Math.pow(tempRatio, 0.5); 
+        const enhancedTempRatio = Math.pow(tempRatio, 0.3);
         
-        // 计算当前色相值、饱和度和亮度值，使用增强的比例
         const hue = baseHue + (targetHue - baseHue) * enhancedTempRatio;
         const saturation = baseSaturation + (targetSaturation - baseSaturation) * enhancedTempRatio;
         
-        // 对亮度使用不同的非线性映射，使亮度变化更加明显
-        // 使用二次函数使亮度变化更加剧烈
-        const enhancedLightnessRatio = tempRatio * tempRatio;
+        const enhancedLightnessRatio = Math.pow(tempRatio, 3);
         const lightness = baseLightness + (targetLightness - baseLightness) * enhancedLightnessRatio;
         
-        // 保留增强的色相值用于绘制
         const enhancedHue = hue;
-
         ctx.save();
+        const bodySize = this.radius * 2.5;
         
-        // 增大老鼠身体尺寸
-        const bodySize = this.radius * 2.5; // 增大老鼠尺寸
-        
-        // 绘制老鼠身体
         ctx.beginPath();
         ctx.arc(this.x, this.y, bodySize, 0, Math.PI * 2, false);
-        // 使用增强的HSL值，确保饱和度保持在100%以获得最鲜艳的颜色
         ctx.fillStyle = `hsl(${enhancedHue}, 100%, ${lightness}%)`;
         ctx.fill();
         
-        // 绘制老鼠耳朵
         const earSize = bodySize * 0.5;
         // 左耳
         ctx.beginPath();
@@ -347,7 +326,6 @@ Mouse.prototype = {
     }
 };
 
-// 渲染标签（带碰撞检测和动画）
 function renderLabels(mice, ctx, currentSimulationTime) {
     const labels = [];
 
@@ -415,7 +393,6 @@ function renderLabels(mice, ctx, currentSimulationTime) {
     });
 }
 
-// 初始化和动画
 (function() {
     var BACKGROUND_COLOR = '#121212',
         PARTICLE_RADIUS = 5,
@@ -429,11 +406,10 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         dataset = [],
         simulationTime = 0,
         timeSpeed = 30,
-        maxTime = 336, // 14天*24小时
+        maxTime = 336,
         isPaused = false,
-        simulationStarted = false; // Add flag to track if simulation has started
+        simulationStarted = false;
 
-    // 创建老鼠卡片
     function createMouseCard(mouseId, gender) {
         const container = gender === 'male' ? document.getElementById('male-mice') : document.getElementById('female-mice');
         if (!container) return;
@@ -454,35 +430,48 @@ function renderLabels(mice, ctx, currentSimulationTime) {
 
         card.appendChild(avatar);
         card.appendChild(info);
-
-        // 添加点击事件
         card.addEventListener('click', function() {
             const mouseInExperiment = mice.find(m => m.mouseId === mouseId);
             
             if (mouseInExperiment) {
-                // 如果老鼠已经在实验中，切换跟踪状态
-                mouseInExperiment.isTracked = !mouseInExperiment.isTracked;
-                
-                // 更新卡片样式以显示跟踪状态
+                // If the mouse is already in the experiment
                 if (mouseInExperiment.isTracked) {
-                    this.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.8)';
-                    this.style.border = '2px solid #fff';
-                } else {
+                    // If it's tracked, first untrack it
+                    mouseInExperiment.isTracked = false;
                     this.style.boxShadow = '';
                     this.style.border = '';
+                    
+                    // Add a double-click functionality - if clicked again within 300ms, remove the mouse
+                    if (!this.lastClickTime || (Date.now() - this.lastClickTime < 300)) {
+                        // Remove the mouse from the experiment
+                        mice = mice.filter(m => m.mouseId !== mouseId);
+                        this.style.opacity = '1';
+                        this.classList.remove('mouse-release');
+                        
+                        // If all mice are removed, reset the simulation started flag
+                        if (mice.length === 0) {
+                            simulationStarted = false;
+                        }
+                    }
+                    this.lastClickTime = Date.now();
+                } else {
+                    // If it's not tracked, just track it
+                    mouseInExperiment.isTracked = true;
+                    this.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.8)';
+                    this.style.border = '2px solid #fff';
+                    this.lastClickTime = null;
                 }
             } else {
-                // Start the simulation if this is the first mouse
+                // If the mouse is not in the experiment yet, add it
                 if (!simulationStarted && mice.length === 0) {
                     simulationStarted = true;
-                    simulationTime = 0; // Reset time when first mouse is selected
+                    simulationTime = 0;
                 }
                 
-                // 如果老鼠不在实验中，释放它并设置为跟踪状态
                 releaseMouse(mouseId, gender);
                 this.style.opacity = '0.5';
+                this.lastClickTime = null;
                 
-                // 设置新释放的老鼠为跟踪状态
                 setTimeout(() => {
                     const newMouse = mice.find(m => m.mouseId === mouseId);
                     if (newMouse) {
@@ -497,7 +486,6 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         container.appendChild(card);
     }
 
-    // 放出老鼠
     function releaseMouse(mouseId, gender) {
         const mouseData = dataset.filter(d => d.mouseId === mouseId);
         if (mouseData.length === 0) return;
@@ -505,11 +493,10 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         const mainBox = document.getElementById('main-box');
         const rect = mainBox.getBoundingClientRect();
 
-        // 修改初始位置，使老鼠从左侧（黑箱方向）出现
         const newMouse = new Mouse(
-            PARTICLE_RADIUS * 3, // 从左侧边缘出现
+            PARTICLE_RADIUS * 3,
             Math.random() * (rect.height - PARTICLE_RADIUS * 4) + PARTICLE_RADIUS * 2,
-            PARTICLE_RADIUS * 1.2, // 增大老鼠尺寸
+            PARTICLE_RADIUS * 1.2,
             mouseId,
             gender,
             mouseData
@@ -585,7 +572,6 @@ function renderLabels(mice, ctx, currentSimulationTime) {
             });
         }
 
-        // 更新时间显示
         const timeDisplay = document.getElementById('time-display');
         if (timeDisplay) {
             if (!simulationStarted) {
@@ -734,7 +720,7 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         if (pauseButton) {
             pauseButton.addEventListener('click', function() {
                 isPaused = !isPaused;
-                this.textContent = isPaused ? 'Resume' : 'Pause/Resume';
+                this.textContent = isPaused ? 'Resume' : 'Pause';
             });
         }
 
@@ -768,7 +754,6 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         }
     }
 
-    // 初始化
     async function init() {
         canvas = document.getElementById('c');
         if (!canvas) return;
