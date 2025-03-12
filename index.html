@@ -7,6 +7,30 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Step 1: Schrödinger's Cat Explanation -->
+    <div id="cat-explanation">
+        <img src="cat.png" alt="Schrödinger's Cat">
+        <p>
+            Schrödinger's cat is a thought experiment proposed by physicist Erwin Schrödinger in 1935 to illustrate 
+            the paradox of quantum superposition. It describes a hypothetical scenario in which a cat is placed inside 
+            a sealed box with a radioactive atom, a Geiger counter, and a vial of poison. If the atom decays, the counter 
+            triggers the release of poison, killing the cat. However, until the box is opened and observed, the cat exists 
+            in a superposition of both alive and dead states.
+        </p>
+        <button id="continue1">Continue</button>
+    </div>
+
+    <!-- Step 2: Mice Experiment Animation Explanation -->
+    <div id="mice-animation-explanation" class="hidden">
+        <img src="animation.GIF" alt="Mice Animation">
+        <p>
+            Similarly, in our experiment, although we monitor activity count and temperature, we cannot directly track 
+            the precise movements of the mice. Therefore, in this visualization, we generate hypothetical mouse movement 
+            within the unobserved box to represent possible trajectories.
+        </p>
+        <button id="continue2">Continue</button>
+    </div>
+
     <div id="experiment-container">
         <div id="black-box">
             <div class="mouse-container" id="male-mice">
@@ -33,6 +57,7 @@
         </select>
         <button id="pauseButton">Pause/Resume</button>
         <button id="resetButton">Reset Experiment</button>
+        <button id="rewatch-explanation-btn">Rewatch Explanation</button>
     </div>
     
     <div id="legend">
@@ -42,7 +67,7 @@
         <div><div class="color-box" style="background: hsl(40, 100%, 80%)"></div>Female (Low Temp)</div>
         <div><div class="color-box" style="background: hsl(0, 100%, 25%)"></div>Female (High Temp)</div>
     </div>
-    
+
     <script src="script.js"></script>
 </body>
 </html>

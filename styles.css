@@ -290,3 +290,126 @@ button:hover {
   40% { transform: translateY(-10px); }
   60% { transform: translateY(-5px); }
 }
+
+#main-box {
+  border: 5px solid white;
+  border-radius: 10px; /* Slightly rounded corners */
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Intro Animation */
+#intro-animation {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  font-size: 20px;
+  z-index: 9999;
+  transition: opacity 1s ease-in-out;
+}
+
+/* Spinner Animation */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top: 5px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Hide elements by default */
+.hidden {
+  display: none;
+}
+
+/* General container styling */
+#cat-explanation, #mice-animation-explanation {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: black;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Images for explanation */
+#cat-explanation img, #mice-animation-explanation img {
+  width: 50%;
+  height: auto;
+  max-height: 60vh;
+  margin-bottom: 20px;
+}
+
+/* Visual Explanation Screen Styles */
+#cat-explanation,
+#mice-animation-explanation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000; /* Black background */
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+#cat-explanation img,
+#mice-animation-explanation img {
+  width: 60%;          /* Scale image/gif to 60% of viewport width */
+  max-width: 600px;      /* Cap maximum width */
+  height: auto;
+  margin-bottom: 30px;
+}
+
+#cat-explanation p,
+#mice-animation-explanation p {
+  font-size: 1.2em;
+  line-height: 1.5;
+  max-width: 800px;      /* Limits the text width for readability */
+  margin: 0 auto 30px;   /* Center the text with bottom margin */
+  padding: 0 20px;
+}
+
+#cat-explanation button,
+#mice-animation-explanation button {
+  padding: 10px 20px;
+  font-size: 1em;
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#cat-explanation button:hover,
+#mice-animation-explanation button:hover {
+  background-color: #45a049;
+}
+

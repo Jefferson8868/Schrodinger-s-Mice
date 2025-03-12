@@ -55,6 +55,7 @@ Vector.prototype = {
     }
 };
 
+
 /**
  * Mouse Class Implementation
  */
@@ -751,4 +752,42 @@ function renderLabels(mice, ctx, currentSimulationTime) {
     }
 
     init();
+    
 })();
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial display states:
+    // - Show the cat explanation (with cat.png) 
+    // - Hide the mice explanation and simulation UI elements
+    document.getElementById('cat-explanation').style.display = 'flex';
+    document.getElementById('mice-animation-explanation').style.display = 'none';
+    document.getElementById('experiment-container').style.display = 'none';
+    document.getElementById('time-display').style.display = 'none';
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('legend').style.display = 'none';
+
+    // First continue button: move from cat explanation to mice explanation
+    document.getElementById('continue1').addEventListener('click', function() {
+        document.getElementById('cat-explanation').style.display = 'none';
+        document.getElementById('mice-animation-explanation').style.display = 'flex';
+    });
+
+    // Second continue button: hide the mice explanation and show the main simulation UI
+    document.getElementById('continue2').addEventListener('click', function() {
+        document.getElementById('mice-animation-explanation').style.display = 'none';
+        document.getElementById('experiment-container').style.display = 'flex';
+        document.getElementById('time-display').style.display = 'block';
+        document.getElementById('controls').style.display = 'block';
+        document.getElementById('legend').style.display = 'block';
+    });
+
+    // Rewatch Explanation: hide simulation UI and restart the explanation sequence
+    document.getElementById('rewatch-explanation-btn').addEventListener('click', function() {
+        document.getElementById('experiment-container').style.display = 'none';
+        document.getElementById('time-display').style.display = 'none';
+        document.getElementById('controls').style.display = 'none';
+        document.getElementById('legend').style.display = 'none';
+        document.getElementById('cat-explanation').style.display = 'flex';
+        document.getElementById('mice-animation-explanation').style.display = 'none';
+    });
+});
