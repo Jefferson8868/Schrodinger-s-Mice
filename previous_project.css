@@ -1,0 +1,155 @@
+/* Previous Project CSS - Adapted for Story Mode */
+
+/* Clock Chart Styles */
+.clock-chart {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  height: 600px;
+}
+
+.clock-chart svg {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.time-label { 
+  font-size: 12px;
+  fill: #eee;
+}
+
+.hour-marker {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1px;
+}
+
+.mouse-line {
+  transition: all 0.3s;
+  opacity: 0.7;
+  stroke-width: 2px;
+  cursor: pointer;
+}
+
+.mouse-line:hover {
+  opacity: 1;
+  stroke-width: 4px;
+}
+
+.mouse-line.dimmed {
+  opacity: 0.2;
+}
+
+.mouse-line.selected {
+  stroke-width: 4px;
+  opacity: 1;
+}
+
+.tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  font-size: 14px;
+  z-index: 1000;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px 20px;
+  justify-items: center;
+  align-items: center;
+  margin-top: 20px;
+  padding: 10px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  color: #eee;
+}
+
+.legend-item:hover {
+  opacity: 0.7;
+}
+
+.legend-item.selected {
+  font-weight: bold;
+}
+
+.legend-color {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.search-container {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  position: relative;
+  margin-left: 20px;
+}
+
+#mouseSearch {
+  padding: 8px;
+  border: 1px solid #333;
+  background: rgba(0, 0, 0, 0.3);
+  color: #eee;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 150px;
+}
+
+#mouseSearch:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.search-container button {
+  white-space: nowrap;
+}
+
+/* Analysis Controls */
+.analysis-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.analysis-controls button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: linear-gradient(45deg, #4A90E2, #50C878);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.analysis-controls button:hover {
+  background: linear-gradient(45deg, #357ABD, #3D8B5D);
+  transform: translateY(-2px);
+}
+
+/* Chart Title */
+.chart-title {
+  fill: #fff;
+  font-size: 18px;
+  font-weight: bold;
+}

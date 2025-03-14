@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mouse Circadian Rhythm Analysis</title>
+  
+  <!-- D3.js -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <!-- pako (for decompressing .gz files) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h2 class="page-title">Mouse Circadian Rhythm Analysis</h2>
+    
+    <div class="controls">
+      <button onclick="toggleGender()">Gender: Female</button>
+      <button onclick="toggleMetric()">Metric: Activity</button>
+      <div class="search-container">
+        <input type="text" id="mouseSearch" placeholder="Search Mouse ID...">
+        <button onclick="resetSearch()">Reset</button>
+      </div>
+    </div>
+
+    <div class="legend"></div>
+    <div class="clock-chart"></div>
+    
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
