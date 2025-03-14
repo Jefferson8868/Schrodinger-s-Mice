@@ -106,6 +106,27 @@ Mouse.prototype = {
             this._speed.y *= -0.5;
         }
 
+        const bodySize = this.radius * 2.5;
+        
+        // 计算实际需要的边界安全距离，考虑到鼠标的完整绘制区域
+        const safeBorderDistance = bodySize * 1.8; // 增加安全距离，确保鼠标不会部分消失
+        
+        // 确保鼠标不会超出边界
+        if (this.x < bounds.x + safeBorderDistance) {
+            this.x = bounds.x + safeBorderDistance;
+            this._speed.x *= -0.5;
+        } else if (this.x > bounds.width - safeBorderDistance) {
+            this.x = bounds.width - safeBorderDistance;
+            this._speed.x *= -0.5;
+        }
+        if (this.y < bounds.y + safeBorderDistance) {
+            this.y = bounds.y + safeBorderDistance;
+            this._speed.y *= -0.5;
+        } else if (this.y > bounds.height - safeBorderDistance) {
+            this.y = bounds.height - safeBorderDistance;
+            this._speed.y *= -0.5;
+        }
+        
         mice.forEach(other => {
             if (other !== this) {
                 const dx = other.x - this.x;
@@ -156,6 +177,11 @@ Mouse.prototype = {
         // 更新标签透明度
         if (this.isTracked) {
             this.labelAlpha = Math.min(this.labelAlpha + 0.1, 1);
+            
+            // Update charts if this mouse is tracked
+            if (typeof updateCharts === 'function') {
+                updateCharts(this.mouseId, safeTimeIndex);
+            }
         } else {
             this.labelAlpha = Math.max(this.labelAlpha - 0.1, 0);
         }
@@ -600,8 +626,13 @@ function renderLabels(mice, ctx, currentSimulationTime) {
                         timeDisplay.style.animation = 'none';
                     }
                 } else {
-                    // Reset to normal styling for non-estrus days
-                    timeDisplay.style.color = '#fff';
+                    // 根据白天/黑夜自动变换字体颜色
+                    // 白天(7-19点)使用深色字体，夜晚使用亮色字体
+                    if (hours >= 7 && hours < 19) {
+                        timeDisplay.style.color = '#333'; // 白天使用深色字体
+                    } else {
+                        timeDisplay.style.color = '#fff'; // 夜晚使用亮色字体
+                    }
                     timeDisplay.style.fontWeight = 'normal';
                     timeDisplay.style.animation = 'none';
                 }
@@ -644,6 +675,21 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         // Set background color based on interpolated value
         context.fillStyle = `rgb(${r}, ${g}, ${b})`;
         context.fillRect(0, 0, screenWidth, screenHeight);
+        
+        // 更新时间显示的样式，使其与日夜变化相协调
+        const timeDisplay = document.getElementById('time-display');
+        if (timeDisplay) {
+            // 根据日夜变化调整时间显示的文字颜色
+            if (dayProgress > 0.7) {
+                // 白天时使用深色文字，提高可读性
+                timeDisplay.style.color = '#333';
+                timeDisplay.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.7)';
+            } else {
+                // 夜晚时使用亮色文字，增加对比度
+                timeDisplay.style.color = '#fff';
+                timeDisplay.style.textShadow = '0 0 5px rgba(0, 0, 0, 0.7)';
+            }
+        }
         
         // Position the sun/moon in the middle of the canvas but higher up
         const centerX = screenWidth / 2;
@@ -787,6 +833,102 @@ function renderLabels(mice, ctx, currentSimulationTime) {
     
 })();
 
+// 导航到特定步骤
+function navigateToStep(step) {
+    // 隐藏所有步骤
+    document.getElementById('cat-explanation').style.display = 'none';
+    document.getElementById('mice-animation-explanation').style.display = 'none';
+    document.getElementById('experiment-container').style.display = 'none';
+    document.getElementById('time-display').style.display = 'none';
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('legend').style.display = 'none';
+    document.getElementById('data-analysis').style.display = 'none';
+    
+    // 显示选定的步骤
+    switch(step) {
+        case 'cat-explanation':
+            document.getElementById('cat-explanation').style.display = 'flex';
+            document.body.classList.add('story-mode');
+            document.body.classList.remove('analysis-mode');
+            break;
+        case 'mice-animation-explanation':
+            document.getElementById('mice-animation-explanation').style.display = 'flex';
+            document.body.classList.add('story-mode');
+            document.body.classList.remove('analysis-mode');
+            break;
+        case 'experiment-container':
+            document.getElementById('experiment-container').style.display = 'flex';
+            document.getElementById('time-display').style.display = 'block';
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('legend').style.display = 'block';
+            document.body.classList.add('story-mode');
+            document.body.classList.remove('analysis-mode');
+            // Trigger a resize event to recalculate the canvas dimensions
+            window.dispatchEvent(new Event('resize'));
+            break;
+        case 'data-analysis':
+            document.getElementById('data-analysis').style.display = 'block';
+            document.body.classList.remove('story-mode');
+            document.body.classList.add('analysis-mode');
+            // 初始化数据分析可视化
+            if (typeof initDataVisualization === 'function') {
+                initDataVisualization();
+            } else {
+                loadPreviousVisualization();
+            }
+            break;
+    }
+    
+    // 更新活动步骤
+    updateActiveStep(step);
+}
+
+// 更新活动步骤
+function updateActiveStep(step) {
+    document.querySelectorAll('.story-step').forEach(el => {
+        if (el.getAttribute('data-step') === step) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+}
+
+// 显示数据分析部分
+function showDataAnalysis() {
+    navigateToStep('data-analysis');
+}
+
+// 隐藏数据分析部分
+function hideDataAnalysis() {
+    navigateToStep('experiment-container');
+}
+
+// 加载前一个项目的可视化
+function loadPreviousVisualization() {
+    // 创建一个链接到前一个项目的CSS
+    if (!document.querySelector('link[href="previous_project.css"]')) {
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'previous_project.css';
+        document.head.appendChild(cssLink);
+    }
+    
+    // 加载前一个项目的JavaScript
+    if (!window.initDataVisualization) {
+        const script = document.createElement('script');
+        script.src = 'previous_project.js';
+        script.onload = function() {
+            if (typeof initDataVisualization === 'function') {
+                initDataVisualization();
+            }
+        };
+        document.head.appendChild(script);
+    } else {
+        initDataVisualization();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Set initial display states:
     // - Show the cat explanation (with cat.png) 
@@ -797,11 +939,23 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('time-display').style.display = 'none';
     document.getElementById('controls').style.display = 'none';
     document.getElementById('legend').style.display = 'none';
+    
+    // 设置初始状态为故事模式
+    document.body.classList.add('story-mode');
+    
+    // 添加故事导航事件监听器
+    document.querySelectorAll('.story-step').forEach(step => {
+        step.addEventListener('click', function() {
+            const targetStep = this.getAttribute('data-step');
+            navigateToStep(targetStep);
+        });
+    });
 
     // First continue button: move from cat explanation to mice explanation
     document.getElementById('continue1').addEventListener('click', function() {
         document.getElementById('cat-explanation').style.display = 'none';
         document.getElementById('mice-animation-explanation').style.display = 'flex';
+        updateActiveStep('mice-animation-explanation');
     });
 
     // Second continue button: hide the mice explanation and show the main simulation UI
@@ -811,6 +965,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('time-display').style.display = 'block';
         document.getElementById('controls').style.display = 'block';
         document.getElementById('legend').style.display = 'block';
+        updateActiveStep('experiment-container');
         // Trigger a resize event to recalculate the canvas dimensions
         window.dispatchEvent(new Event('resize'));
     });
@@ -823,5 +978,16 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('legend').style.display = 'none';
         document.getElementById('cat-explanation').style.display = 'flex';
         document.getElementById('mice-animation-explanation').style.display = 'none';
+        updateActiveStep('cat-explanation');
+    });
+    
+    // 添加数据分析按钮事件监听器
+    document.getElementById('show-data-analysis-btn').addEventListener('click', function() {
+        showDataAnalysis();
+    });
+    
+    // 添加返回模拟按钮事件监听器
+    document.getElementById('back-to-simulation-btn').addEventListener('click', function() {
+        hideDataAnalysis();
     });
 });

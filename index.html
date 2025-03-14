@@ -5,8 +5,22 @@
     <title>Schrödinger's Mice Experiment</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <!-- Add Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Add D3.js for previous visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Add pako for decompressing data -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
 </head>
 <body>
+    <!-- Story Navigation -->
+    <div id="story-nav">
+        <div class="story-step active" data-step="cat-explanation">1. Schrödinger's Cat</div>
+        <div class="story-step" data-step="mice-animation-explanation">2. Mice Experiment</div>
+        <div class="story-step" data-step="experiment-container">3. Simulation</div>
+        <div class="story-step" data-step="data-analysis">4. Data Analysis</div>
+    </div>
+    
     <!-- Step 1: Schrödinger's Cat Explanation -->
     <div id="cat-explanation">
         <img src="cat.png" alt="Schrödinger's Cat">
@@ -58,6 +72,42 @@
         <button id="pauseButton">Pause/Resume</button>
         <button id="resetButton">Reset Experiment</button>
         <button id="rewatch-explanation-btn">Rewatch Explanation</button>
+        <button id="show-data-analysis-btn">View Data Analysis</button>
+    </div>
+    
+    <!-- Data Analysis Section -->
+    <div id="data-analysis" class="hidden">
+        <div class="section-header">
+            <h2>Mouse Circadian Rhythm Analysis</h2>
+            <p class="section-description">
+                In this section, we analyze real mouse data to understand their circadian rhythms and behavior patterns.
+                The radial chart below shows how activity levels or temperature fluctuate throughout a 24-hour period,
+                with each line representing a different mouse.
+            </p>
+        </div>
+        
+        <div class="analysis-controls">
+            <button onclick="toggleGender()">Gender: Female</button>
+            <button onclick="toggleMetric()">Metric: Activity</button>
+            <div class="search-container">
+                <input type="text" id="mouseSearch" placeholder="Search Mouse ID...">
+                <button onclick="resetSearch()">Reset</button>
+            </div>
+        </div>
+        
+        <div class="explanation-box">
+            <h3>Understanding Mouse Movement Measurement</h3>
+            <p>
+                In our experiments, mouse movement is measured using infrared beam breaks that are converted to activity counts.
+                Higher activity counts indicate more movement, which correlates with the speed and frequency of mouse movement in their cage.
+                This data helps us understand patterns of rest and activity in relation to circadian rhythms and environmental factors.
+            </p>
+        </div>
+        
+        <div class="legend"></div>
+        <div class="clock-chart"></div>
+        
+        <button id="back-to-simulation-btn" class="navigation-btn">Back to Simulation</button>
     </div>
     
     <div id="legend">
@@ -69,5 +119,7 @@
     </div>
 
     <script src="script.js"></script>
+    <!-- Add our chart script -->
+    <script src="chart.js"></script>
 </body>
 </html>
