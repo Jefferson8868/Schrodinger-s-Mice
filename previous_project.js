@@ -209,32 +209,48 @@ function renderClockChart() {
         .attr('stroke-width', 2)
         .style('pointer-events', 'none'); // ignore pointer events on the thin line
 
-      // 3) The INVISIBLE hit-area path (wide, event handlers)
-      const hitArea = g.append('path')
-        .datum(lineData)
-        .attr('class', 'mouse-line-hit')  // optional class
-        .attr('d', radialLine)
-        .attr('fill', 'none')
-        .attr('stroke', 'transparent')    // invisible stroke
-        .attr('stroke-width', 10)         // bigger target for mouse
-        .style('pointer-events', 'stroke')
-        .on('mousemove', (event) => {
-          const [sx, sy] = d3.pointer(event, g.node());
-          const angle = Math.atan2(sy, sx);
-          const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15) + 12) % 24;
-          showTooltip(event, mouseId, lineData, hour);
-        })
-        .on('mouseout', (event) => {
-          if (!visibleLine.classed('selected')) {
-            hideTooltip();
+  
+    const hitArea = g.append('path')
+      .datum(lineData)
+      .attr('class', 'mouse-line-hit')
+      .attr('id', `mouse-hit-${mouseId}`)
+      .attr('d', radialLine)
+      .attr('fill', 'none')
+      .attr('stroke', 'transparent')  
+      .attr('stroke-width', 10)      
+      .style('pointer-events', 'stroke')
+      .on('mouseover', function() {
+        const anySelected = d3.selectAll('.mouse-line.selected').size() > 0;
+        const isThisSelected = visibleLine.classed('selected');
+        if (!anySelected && !isThisSelected) {
+          d3.selectAll('.mouse-line').classed('dimmed', true);
+          visibleLine.classed('dimmed', false).attr('stroke-width', 6);
+        }
+      })
+      .on('mousemove', (event) => {
+        const [sx, sy] = d3.pointer(event, g.node());
+        const angle = Math.atan2(sy, sx);
+        const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15) + 12) % 24;
+        showTooltip(event, mouseId, lineData, hour);
+      })
+      .on('mouseout', function() {
+        const anySelected = d3.selectAll('.mouse-line.selected').size() > 0;
+        const isThisSelected = visibleLine.classed('selected');
+        if (!isThisSelected) {
+          hideTooltip();
+          if (!anySelected) {
+            d3.selectAll('.mouse-line').classed('dimmed', false)
+              .attr('stroke-width', 2); 
           }
-        })
-        .on('click', (event) => {
-          event.stopPropagation();
-          toggleMouseSelection(mouseId);
-        });
-  });
+          visibleLine.attr('stroke-width', 2);
+        }
+      })
+      .on('click', (event) => {
+        event.stopPropagation();
+        toggleMouseSelection(mouseId);
+      });
 
+    });
   svg.on('click', () => {
       clearAllSelections();
   });
@@ -330,7 +346,12 @@ function toggleMouseSelection(mouseId) {
 
   if (!wasSelected) {
     line.classed('selected', true);
+    // line.classed('selected', true).attr('stroke-width', 4);
     legendItem.classed('selected', true);
+    d3.selectAll('.mouse-line-hit')
+      .style('pointer-events', 'none');
+    d3.select(`#mouse-hit-${mouseId}`)
+      .style('pointer-events', 'stroke');
     d3.selectAll('.mouse-line').classed('dimmed', function() {
       return !d3.select(this).classed('selected');
     });
@@ -344,6 +365,9 @@ function clearAllSelections() {
   d3.selectAll('.legend-item')
     .classed('selected', false);
   hideTooltip();
+
+  d3.selectAll('.mouse-line-hit')
+    .style('pointer-events', 'stroke');
 }
 
 function toggleGender() {
@@ -473,5 +497,3 @@ if (searchInput) {
 
 window.handleSearch = handleSearch;
 
-// 删除重复的init()调用
-// init();
