@@ -149,4 +149,12 @@ body {
   border-color: #4CAF50;
 }
 
-  
+.tooltip {
+  z-index: 999999;
+  color: #000; /* in case the default text color is white somewhere */
+}
+
+#genderBtn, #metricBtn {
+  content: none !important;
+}
+

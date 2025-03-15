@@ -15,8 +15,8 @@
 <body>
     <!-- Story Navigation -->
     <div id="story-nav">
-        <div class="story-step active" data-step="cat-explanation">1. Schrödinger's Cat</div>
-        <div class="story-step" data-step="mice-animation-explanation">2. Mice Experiment</div>
+        <div class="story-step active" data-step="cat-explanation">1. Background of Schrödinger's Cat</div>
+        <div class="story-step" data-step="mice-animation-explanation">2. Introduction to Mice Experiment</div>
         <div class="story-step" data-step="experiment-container">3. Simulation</div>
         <div class="story-step" data-step="data-analysis">4. Data Analysis</div>
     </div>
@@ -75,6 +75,13 @@
         <button id="show-data-analysis-btn">View Data Analysis</button>
     </div>
     
+    <!-- Full-page loading overlay (hidden by default) -->
+    <div id="overlay-loader">
+        <div class="spinner"></div>
+        <p>Loading data, please wait...</p>
+    </div>
+  
+
     <!-- Data Analysis Section -->
     <div id="data-analysis" class="hidden">
         <div class="section-header">
@@ -87,8 +94,8 @@
         </div>
         
         <div class="analysis-controls">
-            <button onclick="toggleGender()">Gender: Female</button>
-            <button onclick="toggleMetric()">Metric: Activity</button>
+            <button id="genderButton">Gender: Female</button>
+            <button id="metricButton">Metric: Activity</button>
             <div class="search-container">
                 <input type="text" id="mouseSearch" placeholder="Search Mouse ID...">
                 <button onclick="resetSearch()">Reset</button>

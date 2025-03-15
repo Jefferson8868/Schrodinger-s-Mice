@@ -17,11 +17,12 @@
     <h2 class="page-title">Mouse Circadian Rhythm Analysis</h2>
     
     <div class="controls">
-      <button onclick="toggleGender()">Gender: Female</button>
-      <button onclick="toggleMetric()">Metric: Activity</button>
+      <!-- Removed inline onclick, will be handled in JavaScript -->
+      <button id="genderButton">Gender: Female</button>
+      <button id="metricButton">Metric: Activity</button>
       <div class="search-container">
         <input type="text" id="mouseSearch" placeholder="Search Mouse ID...">
-        <button onclick="resetSearch()">Reset</button>
+        <button id="resetButton">Reset</button> <!-- Added an ID for better event binding -->
       </div>
     </div>
 
@@ -30,7 +31,7 @@
     
   </div>
 
-  <script src="script.js"></script>
-
+  <script src="script.js"></script> <!-- Ensure script.js is loaded at the end of the body -->
 </body>
 </html>
+

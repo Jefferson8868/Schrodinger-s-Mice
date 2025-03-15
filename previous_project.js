@@ -9,9 +9,35 @@ const radius = 300;
 
 let zoom = d3.zoom().scaleExtent([1, 2.5]).on('zoom', zoomed);
 
-const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+// Instead of d3.schemeCategory10:
+const colorScale = d3.scaleOrdinal([
+  '#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b',
+  '#e377c2','#7f7f7f','#bcbd22','#17becf','#393b79','#5254a3',
+  '#6b6ecf','#9c9ede','#637939','#8ca252','#b5cf6b','#cedb9c',
+  '#8c6d31','#bd9e39','#e7ba52','#e7cb94','#843c39','#ad494a',
+  '#d6616b','#e7969c','#7b4173','#a55194','#ce6dbd','#de9ed6'
+]);
+
+function showOverlayLoader() {
+  // 1) Show the overlay
+  const overlay = document.getElementById('overlay-loader');
+  overlay.style.display = 'flex';
+
+  // 2) Disable body scrolling
+  document.body.style.overflow = 'hidden';
+}
+
+function hideOverlayLoader() {
+  const overlay = document.getElementById('overlay-loader');
+  overlay.style.display = 'none';
+
+  // Re-enable scrolling
+  document.body.style.overflow = '';
+}
+
 
 async function init() {
+  showOverlayLoader();
   try {
     const response = await fetch('https://ziyaozzz.github.io/dsc106-project3/processed_data_min.json.gz');
     const arrayBuffer = await response.arrayBuffer();
@@ -21,19 +47,31 @@ async function init() {
 
     // Parse JSON
     dataset = JSON.parse(text);
-
     dataset.forEach(d => {
         d.time = timeParser(d.time);
         d.activity = +d.activity;
         d.temp = +d.temp;
         d.minute = +d.minute;
     });
+    hideOverlayLoader();
+    console.log("✅ Dataset loaded, attaching search event listener");
+
+    // Attach search event listener only AFTER dataset loads
+    const searchInput = document.getElementById('mouseSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        console.log("🔍 Searching for:", this.value);
+        handleSearch();
+      });
+    }
 
     renderClockChart();
   } catch (error) {
     console.error("Error fetching JSON:", error);
+    document.getElementById('overlay-loader').textContent = "Error loading data";
   }
 }
+
 
 
 function renderClockChart() {
@@ -148,31 +186,53 @@ function renderClockChart() {
           const value = hourMap.get(hour) || 0;
           return [hour, value];
       });
-
+  
+      // 1) The FILL path (area only) with pointer-events turned off
       g.append('path')
-          .datum(lineData)
-          .attr('class', 'mouse-line')
-          .attr('id', `mouse-${mouseId}`)
-          .attr('d', radialLine)
-          .attr('fill', colorScale(mouseId))
-          .attr('fill-opacity', 0.2)
-          .attr('stroke', colorScale(mouseId))
-          .attr('stroke-width', 2)
-          .on('mousemove', (event) => {
-              const [x, y] = d3.pointer(event, g.node());
-              const angle = Math.atan2(y, x);
-              const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15) + 12) % 24;
-              showTooltip(event, mouseId, lineData, hour);
-          })
-          .on('mouseout', (event) => {
-              if (!d3.select(event.currentTarget).classed('selected')) {
-                  hideTooltip();
-              }
-          })
-          .on('click', (event) => {
-              event.stopPropagation();
-              toggleMouseSelection(mouseId);
-          });
+      .datum(lineData)
+      .attr('class', 'mouse-area')
+      .attr('id', `mouse-area-${mouseId}`)
+      .attr('d', radialLine)
+      .attr('fill', colorScale(mouseId))
+      .attr('fill-opacity', 0.2)
+      .attr('stroke', 'none')
+      .style('pointer-events', 'none');  // important: no mouse events
+      
+      // 2) The VISIBLE stroke path (thin, no pointer events)
+      const visibleLine = g.append('path')
+        .datum(lineData)
+        .attr('class', 'mouse-line')
+        .attr('id', `mouse-${mouseId}`)
+        .attr('d', radialLine)
+        .attr('fill', 'none')
+        .attr('stroke', colorScale(mouseId))
+        .attr('stroke-width', 2)
+        .style('pointer-events', 'none'); // ignore pointer events on the thin line
+
+      // 3) The INVISIBLE hit-area path (wide, event handlers)
+      const hitArea = g.append('path')
+        .datum(lineData)
+        .attr('class', 'mouse-line-hit')  // optional class
+        .attr('d', radialLine)
+        .attr('fill', 'none')
+        .attr('stroke', 'transparent')    // invisible stroke
+        .attr('stroke-width', 10)         // bigger target for mouse
+        .style('pointer-events', 'stroke')
+        .on('mousemove', (event) => {
+          const [sx, sy] = d3.pointer(event, g.node());
+          const angle = Math.atan2(sy, sx);
+          const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15) + 12) % 24;
+          showTooltip(event, mouseId, lineData, hour);
+        })
+        .on('mouseout', (event) => {
+          if (!visibleLine.classed('selected')) {
+            hideTooltip();
+          }
+        })
+        .on('click', (event) => {
+          event.stopPropagation();
+          toggleMouseSelection(mouseId);
+        });
   });
 
   svg.on('click', () => {
@@ -221,12 +281,22 @@ function zoomed(event) {
 function showTooltip(event, mouseId, data, hour) {
     hideTooltip();
 
+      // If data[hour] is missing, skip the tooltip
+    if (!data[hour]) {
+      console.log('No data for hour:', hour, data);
+      return;
+    }
+    const value = data[hour][1];
+    if (value == null) {
+      console.log('No valid value for hour:', hour);
+      return;
+    }
     const tooltip = d3.select('body').append('div')
         .attr('class', 'tooltip')
         .style('left', (event.pageX + 10) + 'px')
         .style('top', (event.pageY - 10) + 'px');
 
-    const value = data[hour][1];
+    // const value = data[hour][1];
 
     tooltip.html(`
         <strong>Mouse ID:</strong> ${mouseId}<br>
@@ -245,8 +315,15 @@ function hideTooltip() {
 
 function toggleMouseSelection(mouseId) {
   const line = d3.select(`#mouse-${mouseId}`);
+  const fillArea = d3.select(`#mouse-area-${mouseId}`);
+  fillArea.raise();
+  line.raise();
   const legendItem = d3.selectAll('.legend-item')
-    .filter((_, i, nodes) => nodes[i].textContent.includes(`Mouse ${mouseId}`));
+    .filter((_, i, nodes) => {
+      const text = nodes[i].textContent.trim();
+      return text === `Mouse ${mouseId}`; // exact match, not includes()
+    });
+
   
   const wasSelected = line.classed('selected');
   clearAllSelections();
@@ -271,49 +348,65 @@ function clearAllSelections() {
 
 function toggleGender() {
   currentGender = currentGender === 'female' ? 'male' : 'female';
-  d3.select(".controls button:first-child")
-    .text(`Gender: ${currentGender.charAt(0).toUpperCase() + currentGender.slice(1)}`);
-  renderClockChart();
+
+  // Select button explicitly using ID
+  const genderButton = document.getElementById("genderButton");
+  if (genderButton) {
+    genderButton.textContent = `Gender: ${currentGender.charAt(0).toUpperCase() + currentGender.slice(1)}`;
+  } else {
+    console.error("❌ Gender button not found!");
+  }
+
+  renderClockChart(); // Re-render chart with updated data
 }
 
 function toggleMetric() {
   currentMetric = currentMetric === 'activity' ? 'temp' : 'activity';
-  d3.select(".controls button:nth-child(2)")
-    .text(`Metric: ${currentMetric.charAt(0).toUpperCase() + currentMetric.slice(1)}`);
-  renderClockChart();
+
+  // Select button explicitly using ID
+  const metricButton = document.getElementById("metricButton");
+  if (metricButton) {
+    metricButton.textContent = `Metric: ${currentMetric === 'activity' ? 'Activity' : 'Temperature'}`;
+  } else {
+    console.error("❌ Metric button not found!");
+  }
+
+  renderClockChart(); // Re-render chart with updated data
 }
 
 
 function handleSearch() {
+  if (!dataset || dataset.length === 0) {
+    console.warn("⚠️ Dataset not loaded yet! Skipping search...");
+    return;
+  }
+
   const searchInput = document.getElementById('mouseSearch');
   const searchValue = searchInput.value.trim().toLowerCase();
-  
+
   if (!searchValue) {
     d3.selectAll('.mouse-line').style('display', 'block');
     clearAllSelections();
     return;
   }
 
-  // 获取当前显示的所有鼠标ID（从legend中获取）
-  const availableMouseIds = Array.from(document.querySelectorAll('.legend-item'))
-    .map(item => item.textContent.match(/Mouse ([mf]\d+)/)[1]);
+  const availableMouseIds = [...new Set(dataset.map(d => d.mouseId.toLowerCase()))];
 
-  // 构建搜索模式
-  const searchId = searchValue.startsWith('m') || searchValue.startsWith('f') ? 
-    searchValue : 
-    `${currentGender.charAt(0)}${searchValue}`;
+  const searchId = searchValue.startsWith('m') || searchValue.startsWith('f')
+    ? searchValue
+    : `${currentGender.charAt(0)}${searchValue}`;
 
-  // 查找匹配的鼠标ID
-  const matchedId = availableMouseIds.find(id => id.toLowerCase() === searchId.toLowerCase());
+  const matchedId = availableMouseIds.find(id => id === searchId.toLowerCase());
 
   if (matchedId) {
-    // 隐藏所有数据线
+    console.log(`✅ Mouse ${matchedId} found and highlighted`);
+
     d3.selectAll('.mouse-line').style('display', 'none');
-    // 只显示搜索到的老鼠数据线
     d3.select(`#mouse-${matchedId}`).style('display', 'block');
+
     toggleMouseSelection(matchedId);
   } else {
-    alert(`Mouse ID "${searchValue}" not found!`);
+    console.warn(`❌ Mouse ID "${searchValue}" not found!`);
     d3.selectAll('.mouse-line').style('display', 'block');
     clearAllSelections();
   }
@@ -321,46 +414,64 @@ function handleSearch() {
 
 function resetSearch() {
   const searchInput = document.getElementById('mouseSearch');
-  searchInput.value = ''; // 清空搜索框
+  searchInput.value = ''; // Clear search input
+
   d3.selectAll('.mouse-line').style('display', 'block');
+  d3.selectAll('.legend-item').classed('selected', false).classed('dimmed', false);
+
   clearAllSelections();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  init();
-  
-  const searchInput = document.getElementById('mouseSearch');
-  if (searchInput) {
-    // 添加回车键事件监听
-    searchInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSearch();
-      }
-    });
+/**
+ * previous_project.js
+ * Option 1: No DOMContentLoaded wrapper
+ */
 
-    // 添加输入建议功能
-    searchInput.addEventListener('input', function() {
-      const value = this.value.trim().toLowerCase();
-      if (!value) return;
+// 1) Immediately call `init()` to fetch your dataset and render the chart
+init();  
+console.log("🔵 Running previous_project.js immediately (no DOMContentLoaded).");
 
-      const searchId = value.startsWith('f') ? value : `f${value}`;
-      const validData = dataset.filter(d => d.gender === currentGender);
-      const availableMouseIds = [...new Set(validData.map(d => d.mouseId))];
-      
-      // 如果输入的值完全匹配某个ID，自动触发搜索
-      if (availableMouseIds.some(id => id.toLowerCase() === searchId)) {
-        handleSearch();
-      }
-    });
-  }
+// 2) Now attach the button listeners directly
+const genderButton = document.getElementById('genderButton');
+console.log("Gender Button Found:", genderButton);
+if (genderButton) {
+  genderButton.addEventListener('click', function() {
+    console.log("🟢 Gender button clicked");
+    toggleGender();
+  });
+} else {
+  console.error("❌ Gender button not found!");
+}
 
-  // 添加reset按钮的事件监听器
+const metricButton = document.getElementById('metricButton');
+console.log("Metric Button Found:", metricButton);
+if (metricButton) {
+  metricButton.addEventListener('click', function() {
+    console.log("🟢 Metric button clicked");
+    toggleMetric();
+  });
+} else {
+  console.error("❌ Metric button not found!");
+}
+
+// 3) Attach the search & reset as before
+const searchInput = document.getElementById('mouseSearch');
+if (searchInput) {
+  console.log("✅ Search input found, attaching event listener");
+  searchInput.addEventListener('input', function() {
+    console.log("🔍 Searching for:", this.value);
+    handleSearch();
+  });
+    
   const resetButton = document.querySelector('.search-container button');
   if (resetButton) {
     resetButton.addEventListener('click', resetSearch);
   }
-});
+} else {
+  console.error("❌ Search input not found!");
+}
+
+window.handleSearch = handleSearch;
 
 // 删除重复的init()调用
 // init();
