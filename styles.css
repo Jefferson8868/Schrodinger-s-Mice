@@ -566,13 +566,35 @@ button:hover {
   top: 60px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 5px 15px;
+  padding: 8px 20px;
   border-radius: 20px;
   font-size: 20px;
   font-weight: bold;
   z-index: 100;
   text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
-  background-color: transparent;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* New class for estrus days display */
+#time-display.estrus-day {
+  color: #FF69B4 !important; /* Pink color with !important to override any inline styles */
+  font-weight: bold !important;
+  text-shadow: 0 0 8px rgba(255, 105, 180, 0.7);
+  animation: time-pulse 1s infinite !important;
+  border-color: rgba(255, 105, 180, 0.6) !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.4) !important;
+}
+
+/* Special pulse animation for the time display that preserves its positioning */
+@keyframes time-pulse {
+  0% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.05); }
+  100% { transform: translateX(-50%) scale(1); }
 }
 
 /* 修复图例样式 */

@@ -615,17 +615,12 @@ function renderLabels(mice, ctx, currentSimulationTime) {
                 if (days === 4 || days === 8 || days === 12) {
                     timeText += ' ♀️ Estrus Day';
                     
-                    // Add special styling to make it stand out
-                    timeDisplay.style.color = '#FF69B4'; // Pink color for estrus days
-                    timeDisplay.style.fontWeight = 'bold';
-                    
-                    // Add a subtle animation if it's the start of the day (first hour)
-                    if (hours === 0 && minutes < 10) {
-                        timeDisplay.style.animation = 'pulse 1s infinite';
-                    } else {
-                        timeDisplay.style.animation = 'none';
-                    }
+                    // Use the new CSS class for estrus days instead of inline styles
+                    timeDisplay.classList.add('estrus-day');
                 } else {
+                    // Remove the estrus day class if it's not an estrus day
+                    timeDisplay.classList.remove('estrus-day');
+                    
                     // 根据白天/黑夜自动变换字体颜色
                     // 白天(7-19点)使用深色字体，夜晚使用亮色字体
                     if (hours >= 7 && hours < 19) {
@@ -679,15 +674,18 @@ function renderLabels(mice, ctx, currentSimulationTime) {
         // 更新时间显示的样式，使其与日夜变化相协调
         const timeDisplay = document.getElementById('time-display');
         if (timeDisplay) {
-            // 根据日夜变化调整时间显示的文字颜色
-            if (dayProgress > 0.7) {
-                // 白天时使用深色文字，提高可读性
-                timeDisplay.style.color = '#333';
-                timeDisplay.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.7)';
-            } else {
-                // 夜晚时使用亮色文字，增加对比度
-                timeDisplay.style.color = '#fff';
-                timeDisplay.style.textShadow = '0 0 5px rgba(0, 0, 0, 0.7)';
+            // Only change color if it's not an estrus day (when the class is not present)
+            if (!timeDisplay.classList.contains('estrus-day')) {
+                // 根据日夜变化调整时间显示的文字颜色
+                if (dayProgress > 0.7) {
+                    // 白天时使用深色文字，提高可读性
+                    timeDisplay.style.color = '#333';
+                    timeDisplay.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.7)';
+                } else {
+                    // 夜晚时使用亮色文字，增加对比度
+                    timeDisplay.style.color = '#fff';
+                    timeDisplay.style.textShadow = '0 0 5px rgba(0, 0, 0, 0.7)';
+                }
             }
         }
         
@@ -835,7 +833,14 @@ function renderLabels(mice, ctx, currentSimulationTime) {
 
 // 导航到特定步骤
 function navigateToStep(step) {
-    // 隐藏所有步骤
+    // 检查步骤是否有效
+    const validSteps = ['cat-explanation', 'mice-animation-explanation', 'experiment-container', 'data-analysis'];
+    if (!validSteps.includes(step)) {
+        console.warn('Invalid navigation step:', step);
+        step = 'cat-explanation'; // Default to first step if invalid
+    }
+    
+    // 隐藏所有步骤和UI元素
     document.getElementById('cat-explanation').style.display = 'none';
     document.getElementById('mice-animation-explanation').style.display = 'none';
     document.getElementById('experiment-container').style.display = 'none';
@@ -844,38 +849,42 @@ function navigateToStep(step) {
     document.getElementById('legend').style.display = 'none';
     document.getElementById('data-analysis').style.display = 'none';
     
+    // 重置body类
+    document.body.classList.remove('story-mode');
+    document.body.classList.remove('analysis-mode');
+    
     // 显示选定的步骤
     switch(step) {
         case 'cat-explanation':
             document.getElementById('cat-explanation').style.display = 'flex';
             document.body.classList.add('story-mode');
-            document.body.classList.remove('analysis-mode');
             break;
         case 'mice-animation-explanation':
             document.getElementById('mice-animation-explanation').style.display = 'flex';
             document.body.classList.add('story-mode');
-            document.body.classList.remove('analysis-mode');
             break;
         case 'experiment-container':
             document.getElementById('experiment-container').style.display = 'flex';
             document.getElementById('time-display').style.display = 'block';
-            document.getElementById('controls').style.display = 'block';
+            document.getElementById('controls').style.display = 'flex';
             document.getElementById('legend').style.display = 'block';
             document.body.classList.add('story-mode');
-            document.body.classList.remove('analysis-mode');
             // Trigger a resize event to recalculate the canvas dimensions
-            window.dispatchEvent(new Event('resize'));
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 10);
             break;
         case 'data-analysis':
             document.getElementById('data-analysis').style.display = 'block';
-            document.body.classList.remove('story-mode');
             document.body.classList.add('analysis-mode');
             // 初始化数据分析可视化
-            if (typeof initDataVisualization === 'function') {
-                initDataVisualization();
-            } else {
-                loadPreviousVisualization();
-            }
+            setTimeout(() => {
+                if (typeof initDataVisualization === 'function') {
+                    initDataVisualization();
+                } else {
+                    loadPreviousVisualization();
+                }
+            }, 10);
             break;
     }
     
@@ -929,19 +938,84 @@ function loadPreviousVisualization() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Set initial display states:
-    // - Show the cat explanation (with cat.png) 
-    // - Hide the mice explanation and simulation UI elements
-    document.getElementById('cat-explanation').style.display = 'flex';
-    document.getElementById('mice-animation-explanation').style.display = 'none';
-    document.getElementById('experiment-container').style.display = 'none';
-    document.getElementById('time-display').style.display = 'none';
-    document.getElementById('controls').style.display = 'none';
-    document.getElementById('legend').style.display = 'none';
+// Add window error handler to catch and log errors
+window.addEventListener('error', function(event) {
+    console.error('JavaScript error:', event.message, 'at', event.filename, 'line', event.lineno);
+    // Prevent complete UI breakage on errors
+    if (document.body.classList.contains('story-mode') || document.body.classList.contains('analysis-mode')) {
+        // We already have a mode set, likely not a serious initialization error
+        return;
+    }
     
-    // 设置初始状态为故事模式
-    document.body.classList.add('story-mode');
+    // If no mode is set, we might have a serious initialization error
+    // Try to recover by forcing the initial view
+    try {
+        document.getElementById('cat-explanation').style.display = 'flex';
+        document.body.classList.add('story-mode');
+        document.querySelectorAll('.story-step').forEach(step => {
+            if (step.getAttribute('data-step') === 'cat-explanation') {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
+    } catch (e) {
+        console.error('Recovery attempt failed:', e);
+    }
+});
+
+// Before the document.addEventListener DOMContentLoaded, add:
+
+// Ensure the page is fully reset on reload
+window.addEventListener('beforeunload', function() {
+    // Clear hash to prevent automatic navigation on reload
+    if (window.location.hash) {
+        window.location.hash = '';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize page state based on URL hash or default to cat explanation
+    function initializePageState() {
+        // Hide all sections first
+        const allSections = [
+            'cat-explanation',
+            'mice-animation-explanation',
+            'experiment-container',
+            'data-analysis'
+        ];
+        
+        allSections.forEach(section => {
+            document.getElementById(section).style.display = 'none';
+        });
+        
+        // Hide UI elements that should be initially hidden
+        document.getElementById('time-display').style.display = 'none';
+        document.getElementById('controls').style.display = 'none';
+        document.getElementById('legend').style.display = 'none';
+        
+        // Check URL hash to determine which section to show
+        const hash = window.location.hash.substring(1);
+        if (hash && allSections.includes(hash)) {
+            navigateToStep(hash);
+        } else {
+            // Default to cat explanation
+            document.getElementById('cat-explanation').style.display = 'flex';
+            document.body.classList.add('story-mode');
+            document.body.classList.remove('analysis-mode');
+            updateActiveStep('cat-explanation');
+        }
+    }
+    
+    // Set initial page state
+    initializePageState();
+    
+    // 修改导航函数以更新URL哈希
+    const originalNavigateToStep = navigateToStep;
+    window.navigateToStep = function(step) {
+        originalNavigateToStep(step);
+        window.location.hash = step;
+    };
     
     // 添加故事导航事件监听器
     document.querySelectorAll('.story-step').forEach(step => {
@@ -953,32 +1027,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // First continue button: move from cat explanation to mice explanation
     document.getElementById('continue1').addEventListener('click', function() {
-        document.getElementById('cat-explanation').style.display = 'none';
-        document.getElementById('mice-animation-explanation').style.display = 'flex';
-        updateActiveStep('mice-animation-explanation');
+        navigateToStep('mice-animation-explanation');
     });
 
     // Second continue button: hide the mice explanation and show the main simulation UI
     document.getElementById('continue2').addEventListener('click', function() {
-        document.getElementById('mice-animation-explanation').style.display = 'none';
-        document.getElementById('experiment-container').style.display = 'flex';
-        document.getElementById('time-display').style.display = 'block';
-        document.getElementById('controls').style.display = 'block';
-        document.getElementById('legend').style.display = 'block';
-        updateActiveStep('experiment-container');
-        // Trigger a resize event to recalculate the canvas dimensions
-        window.dispatchEvent(new Event('resize'));
+        navigateToStep('experiment-container');
     });
 
     // Rewatch Explanation: hide simulation UI and restart the explanation sequence
     document.getElementById('rewatch-explanation-btn').addEventListener('click', function() {
-        document.getElementById('experiment-container').style.display = 'none';
-        document.getElementById('time-display').style.display = 'none';
-        document.getElementById('controls').style.display = 'none';
-        document.getElementById('legend').style.display = 'none';
-        document.getElementById('cat-explanation').style.display = 'flex';
-        document.getElementById('mice-animation-explanation').style.display = 'none';
-        updateActiveStep('cat-explanation');
+        navigateToStep('cat-explanation');
     });
     
     // 添加数据分析按钮事件监听器
@@ -989,5 +1048,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 添加返回模拟按钮事件监听器
     document.getElementById('back-to-simulation-btn').addEventListener('click', function() {
         hideDataAnalysis();
+    });
+    
+    // 添加窗口哈希变化监听，确保刷新后或使用浏览器导航按钮时正确显示内容
+    window.addEventListener('hashchange', function() {
+        const hash = window.location.hash.substring(1);
+        if (hash && allSections.includes(hash)) {
+            navigateToStep(hash);
+        }
     });
 });
