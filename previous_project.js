@@ -124,7 +124,9 @@ function renderClockChart() {
       return [mouseId, hourMap];
   });
 
-  const maxValue = currentMetric === 'activity' ? 34 : 19.5;
+  // 设置更合理的数据范围，确保图表和tooltip显示一致
+  // 对于activity数据，最大值应该能够容纳所有可能的数据点
+  const maxValue = currentMetric === 'activity' ? 50 : 19.5; // 增大activity的最大值以适应更高的数据点
   const minValue = currentMetric === 'activity' ? 0 : 18;
   const valueScale = d3.scaleLinear()
       .domain([minValue, maxValue])
@@ -134,20 +136,36 @@ function renderClockChart() {
   axisCircles.forEach(percentage => {
       const r = radius * percentage;
       
+      // 增强同心圆的可见性
       g.append('circle')
           .attr('r', r)
           .attr('fill', 'none')
-          .attr('stroke', '#ddd')
-          .attr('stroke-dasharray', '2,2');
+          .attr('stroke', '#aaa')
+          .attr('stroke-width', percentage === 1 ? 1.5 : 1)
+          .attr('stroke-dasharray', '3,3');
 
       const value = valueScale.invert(r);
+      
+      // 创建背景以增强文本可见性
+      g.append('rect')
+          .attr('x', 0)
+          .attr('y', -r - 10)
+          .attr('width', 70)
+          .attr('height', 20)
+          .attr('fill', 'rgba(0, 0, 0, 0.6)')
+          .attr('rx', 4)
+          .attr('ry', 4);
+      
+      // 增强坐标值文本
       g.append('text')
+          .attr('class', 'axis-value')
           .attr('x', 5)
           .attr('y', -r)
-          .attr('fill', '#666')
+          .attr('fill', '#fff')
           .attr('text-anchor', 'start')
           .attr('dominant-baseline', 'middle')
-          .style('font-size', '10px')
+          .style('font-size', '12px')
+          .style('font-weight', percentage === 1 ? 'bold' : 'normal')
           .text(
             currentMetric === 'activity' ? 
               `${Math.round(value)} counts` : 
@@ -160,20 +178,36 @@ function renderClockChart() {
       const angle = (hour * 15 - 90) * (Math.PI / 180);
       const labelRadius = radius + 20;
       
+      // 增强时间标记线
+      g.append('line')
+          .attr('class', 'hour-marker')
+          .attr('x1', 0)
+          .attr('y1', 0)
+          .attr('x2', Math.cos(angle) * radius)
+          .attr('y2', Math.sin(angle) * radius)
+          .attr('stroke', hour % 3 === 0 ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)')
+          .attr('stroke-width', hour % 3 === 0 ? 1.5 : 1);
+      
+      // 为主要时间点（3小时间隔）添加背景
+      if (hour % 3 === 0) {
+        g.append('circle')
+          .attr('cx', Math.cos(angle) * labelRadius)
+          .attr('cy', Math.sin(angle) * labelRadius)
+          .attr('r', 16)
+          .attr('fill', 'rgba(74, 144, 226, 0.3)');
+      }
+      
+      // 增强时间标签
       g.append('text')
           .attr('class', 'time-label')
           .attr('x', Math.cos(angle) * labelRadius)
           .attr('y', Math.sin(angle) * labelRadius)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
+          .attr('fill', hour % 3 === 0 ? '#fff' : '#aaa')
+          .style('font-size', hour % 3 === 0 ? '14px' : '12px')
+          .style('font-weight', hour % 3 === 0 ? 'bold' : 'normal')
           .text(`${hour % 12 || 12}${hour < 12 ? 'AM' : 'PM'}`);
-
-      g.append('line')
-          .attr('class', 'hour-marker')
-          .attr('x1', 0)
-          .attr('y1', 0)
-          .attr('x2', Math.cos(angle) * radius)
-          .attr('y2', Math.sin(angle) * radius);
   });
 
   const radialLine = d3.lineRadial()
@@ -182,9 +216,12 @@ function renderClockChart() {
       .curve(d3.curveCardinalClosed);
 
   hourlyData.forEach(([mouseId, hourMap]) => {
+      // 确保lineData中的值与原始数据一致，不进行任何隐式转换
       const lineData = Array.from({length: 24}, (_, hour) => {
-          const value = hourMap.get(hour) || 0;
-          return [hour, value];
+          // 获取原始值，如果不存在则为0
+          const value = hourMap.get(hour);
+          // 确保返回的是原始值，不进行任何转换
+          return [hour, value !== undefined ? value : 0];
       });
   
       // 1) The FILL path (area only) with pointer-events turned off
@@ -230,7 +267,36 @@ function renderClockChart() {
       .on('mousemove', (event) => {
         const [sx, sy] = d3.pointer(event, g.node());
         const angle = Math.atan2(sy, sx);
+        // 修正角度计算逻辑，确保与时间标签显示一致
+        // 将角度转换为小时，确保与图表外圈的时间标签完全对应
         const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15)) % 24;
+        
+        // 在鼠标位置显示一个小点，标记当前选中的时间点
+        d3.select('.time-indicator').remove();
+        const r = valueScale(lineData[hour][1] || 0);
+        const hourAngle = (hour * 15 - 90) * (Math.PI / 180);
+        
+        // 添加时间指示线，从中心到外圈
+        g.append('line')
+          .attr('class', 'time-indicator')
+          .attr('x1', 0)
+          .attr('y1', 0)
+          .attr('x2', Math.cos(hourAngle) * (radius + 10))
+          .attr('y2', Math.sin(hourAngle) * (radius + 10))
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 1)
+          .attr('stroke-dasharray', '3,3');
+        
+        // 添加时间点指示器
+        g.append('circle')
+          .attr('class', 'time-indicator')
+          .attr('cx', Math.cos(hourAngle) * r)
+          .attr('cy', Math.sin(hourAngle) * r)
+          .attr('r', 6)
+          .attr('fill', colorScale(mouseId))
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 2);
+        
         showTooltip(event, mouseId, lineData, hour);
       })
       .on('mouseout', function() {
@@ -297,7 +363,7 @@ function zoomed(event) {
 function showTooltip(event, mouseId, data, hour) {
     hideTooltip();
 
-      // If data[hour] is missing, skip the tooltip
+    // If data[hour] is missing, skip the tooltip
     if (!data[hour]) {
       console.log('No data for hour:', hour, data);
       return;
@@ -307,26 +373,42 @@ function showTooltip(event, mouseId, data, hour) {
       console.log('No valid value for hour:', hour);
       return;
     }
+    
+    // 获取当前使用的valueScale，确保tooltip和图表使用相同的数据映射
+    const maxValue = currentMetric === 'activity' ? 34 : 19.5;
+    const minValue = currentMetric === 'activity' ? 0 : 18;
+    
+    // 计算该值在图表上的实际显示位置（相对于valueScale）
+    // 确保tooltip显示的值与图表上显示的位置一致
+    const displayValue = value;
+    
+    // 创建一个更加醒目的tooltip
     const tooltip = d3.select('body').append('div')
-        .attr('class', 'tooltip')
-        .style('left', (event.pageX + 10) + 'px')
-        .style('top', (event.pageY - 10) + 'px');
+        .attr('class', 'tooltip enhanced-tooltip')
+        .style('left', (event.pageX + 15) + 'px')
+        .style('top', (event.pageY - 15) + 'px');
 
-    // const value = data[hour][1];
-
+    // 使用更加清晰的格式显示数据
+    // 确保AM/PM显示逻辑与图表外圈的时间标签完全一致
+    // 图表外圈的时间标签是按照24小时制计算的，0-11是AM，12-23是PM
     tooltip.html(`
-        <strong>Mouse ID:</strong> ${mouseId}<br>
-        <strong>Time:</strong> ${hour % 12 || 12}${hour < 12 ? 'AM' : 'PM'}<br>
-        <strong>${currentMetric === 'activity' ? 'Activity' : 'Temperature'}:</strong> 
-        ${currentMetric === 'activity' ? 
-            `${value.toFixed(0)} counts` : 
-            `${value.toFixed(2)}°C`}
+        <div class="tooltip-header">
+            <span class="tooltip-time">${hour % 12 || 12}${hour < 12 ? 'AM' : 'PM'}</span>
+            <span class="tooltip-id">Mouse ${mouseId}</span>
+        </div>
+        <div class="tooltip-value">
+            <strong>${currentMetric === 'activity' ? 'Activity' : 'Temperature'}:</strong> 
+            <span class="value-highlight">${currentMetric === 'activity' ? 
+                `${displayValue.toFixed(0)} counts` : 
+                `${displayValue.toFixed(2)}°C`}</span>
+        </div>
     `);
 }
 
 
 function hideTooltip() {
   d3.selectAll('.tooltip').remove();
+  d3.select('.time-indicator').remove();
 }
 
 function toggleMouseSelection(mouseId) {
@@ -348,10 +430,73 @@ function toggleMouseSelection(mouseId) {
     line.classed('selected', true);
     // line.classed('selected', true).attr('stroke-width', 4);
     legendItem.classed('selected', true);
+    
+    // 禁用所有老鼠的鼠标交互
     d3.selectAll('.mouse-line-hit')
       .style('pointer-events', 'none');
+      
+    // 只启用选中老鼠的鼠标交互
     d3.select(`#mouse-hit-${mouseId}`)
       .style('pointer-events', 'stroke');
+      
+    // 添加全局鼠标移动事件，用于在整个图表上显示选中老鼠的数据
+    const svg = d3.select('.clock-chart svg');
+    const g = svg.select('g');
+    const valueScale = d3.scaleLinear()
+      .domain([currentMetric === 'activity' ? 0 : 18, currentMetric === 'activity' ? 34 : 19.5])
+      .range([50, radius]);
+      
+    // 获取选中老鼠的数据
+    const mouseData = d3.select(`#mouse-hit-${mouseId}`).datum();
+    
+    // 移除之前可能存在的全局鼠标事件
+    svg.on('.global-mouse', null);
+    
+    // 添加新的全局鼠标事件
+    svg.on('mousemove.global-mouse', function(event) {
+      const [sx, sy] = d3.pointer(event, g.node());
+      const angle = Math.atan2(sy, sx);
+      const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15)) % 24;
+      
+      // 移除之前的时间指示器
+      d3.select('.time-indicator').remove();
+      
+      // 获取当前小时的数据值
+      const value = mouseData[hour][1] || 0;
+      const r = valueScale(value);
+      const hourAngle = (hour * 15 - 90) * (Math.PI / 180);
+      
+      // 添加时间指示线，从中心到外圈
+      g.append('line')
+        .attr('class', 'time-indicator')
+        .attr('x1', 0)
+        .attr('y1', 0)
+        .attr('x2', Math.cos(hourAngle) * (radius + 10))
+        .attr('y2', Math.sin(hourAngle) * (radius + 10))
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1)
+        .attr('stroke-dasharray', '3,3');
+      
+      // 添加时间点指示器
+      g.append('circle')
+        .attr('class', 'time-indicator')
+        .attr('cx', Math.cos(hourAngle) * r)
+        .attr('cy', Math.sin(hourAngle) * r)
+        .attr('r', 6)
+        .attr('fill', colorScale(mouseId))
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+      
+      // 显示tooltip
+      showTooltip(event, mouseId, mouseData, hour);
+    });
+    
+    // 添加鼠标离开事件
+    svg.on('mouseout.global-mouse', function() {
+      hideTooltip();
+    });
+    
+    // 将其他老鼠线条变暗
     d3.selectAll('.mouse-line').classed('dimmed', function() {
       return !d3.select(this).classed('selected');
     });
@@ -366,6 +511,10 @@ function clearAllSelections() {
     .classed('selected', false);
   hideTooltip();
 
+  // 移除全局鼠标事件
+  d3.select('.clock-chart svg').on('.global-mouse', null);
+  
+  // 恢复所有老鼠的鼠标交互
   d3.selectAll('.mouse-line-hit')
     .style('pointer-events', 'stroke');
 }
