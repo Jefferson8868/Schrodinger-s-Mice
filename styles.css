@@ -9,6 +9,7 @@ body {
        -o-user-select: none;
       -ms-user-select: none;
           user-select: none;
+  transition: background-color 0.3s ease;
 }
 
 body.story-mode {
@@ -111,6 +112,8 @@ button:hover {
   transition: transform 0.3s, box-shadow 0.3s;
   display: flex;
   align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .mouse-card:hover {
@@ -131,6 +134,8 @@ button:hover {
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .mouse-avatar.male {
@@ -148,6 +153,8 @@ button:hover {
   height: 70%;
   border-radius: 50%;
   background-color: currentColor;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .mouse-avatar.male:before {
@@ -166,6 +173,8 @@ button:hover {
   border-radius: 50%;
   background-color: #000;
   top: 25%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .mouse-avatar.male:after {
@@ -369,6 +378,8 @@ button:hover {
   justify-content: center;
   gap: 10px;
   margin: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .legend-item {
@@ -576,7 +587,8 @@ button:hover {
   border: 2px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(4px);
-  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
+  will-change: transform, color, background-color, border-color;
 }
 
 /* New class for estrus days display */
@@ -780,6 +792,41 @@ h2, h3 {
 /* 3) The rotating animation */
 @keyframes spin {
   100% { transform: rotate(360deg); }
+}
+
+/* Add section class to all main content sections */
+#cat-explanation, #mice-animation-explanation, #experiment-container, #data-analysis {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Optimizing transitions for UI elements */
+#time-display, #controls, #legend {
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  will-change: opacity, transform;
+}
+
+/* Make transitions only active when transitioning */
+body.transitioning #cat-explanation,
+body.transitioning #mice-animation-explanation,
+body.transitioning #experiment-container,
+body.transitioning #data-analysis,
+body.transitioning #time-display,
+body.transitioning #controls,
+body.transitioning #legend {
+  transition: opacity 0.3s ease;
+}
+
+/* Reset opacity for non-section elements that shouldn't be affected */
+.mouse-container, .mouse-avatar, .mouse-avatar:before, .mouse-avatar:after, 
+.legend, #black-box, #main-box, .mouse-card {
+  opacity: 1 !important; /* Ensure these are always visible */
+}
+
+/* Body background transition */
+body {
+  transition: background-color 0.3s ease;
 }
 
 

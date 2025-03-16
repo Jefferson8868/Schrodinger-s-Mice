@@ -840,56 +840,127 @@ function navigateToStep(step) {
         step = 'cat-explanation'; // Default to first step if invalid
     }
     
-    // 隐藏所有步骤和UI元素
-    document.getElementById('cat-explanation').style.display = 'none';
-    document.getElementById('mice-animation-explanation').style.display = 'none';
-    document.getElementById('experiment-container').style.display = 'none';
-    document.getElementById('time-display').style.display = 'none';
-    document.getElementById('controls').style.display = 'none';
-    document.getElementById('legend').style.display = 'none';
-    document.getElementById('data-analysis').style.display = 'none';
+    // Add transitioning class to body for smoother animations
+    document.body.classList.add('transitioning');
     
-    // 重置body类
-    document.body.classList.remove('story-mode');
-    document.body.classList.remove('analysis-mode');
+    // 获取所有需要处理的元素
+    const allSections = validSteps.map(s => document.getElementById(s)).filter(Boolean);
+    const timeDisplay = document.getElementById('time-display');
+    const controls = document.getElementById('controls');
+    const legend = document.getElementById('legend');
     
-    // 显示选定的步骤
-    switch(step) {
-        case 'cat-explanation':
-            document.getElementById('cat-explanation').style.display = 'flex';
-            document.body.classList.add('story-mode');
-            break;
-        case 'mice-animation-explanation':
-            document.getElementById('mice-animation-explanation').style.display = 'flex';
-            document.body.classList.add('story-mode');
-            break;
-        case 'experiment-container':
-            document.getElementById('experiment-container').style.display = 'flex';
-            document.getElementById('time-display').style.display = 'block';
-            document.getElementById('controls').style.display = 'flex';
-            document.getElementById('legend').style.display = 'block';
-            document.body.classList.add('story-mode');
-            // Trigger a resize event to recalculate the canvas dimensions
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-            }, 10);
-            break;
-        case 'data-analysis':
-            document.getElementById('data-analysis').style.display = 'block';
-            document.body.classList.add('analysis-mode');
-            // 初始化数据分析可视化
-            setTimeout(() => {
-                if (typeof initDataVisualization === 'function') {
-                    initDataVisualization();
-                } else {
-                    loadPreviousVisualization();
-                }
-            }, 10);
-            break;
+    // 淡出当前显示的内容
+    let anyDisplayed = false;
+    allSections.forEach(section => {
+        if (section && section.style.display !== 'none') {
+            section.style.opacity = 0;
+            anyDisplayed = true;
+        }
+    });
+    
+    if (timeDisplay && timeDisplay.style.display !== 'none') {
+        timeDisplay.style.opacity = 0;
+    }
+    if (controls && controls.style.display !== 'none') {
+        controls.style.opacity = 0;
+    }
+    if (legend && legend.style.display !== 'none') {
+        legend.style.opacity = 0;
     }
     
-    // 更新活动步骤
-    updateActiveStep(step);
+    // 短暂延迟后进行视图切换 - 如果没有元素显示（页面刚加载），则不需要延迟
+    const transitionDelay = anyDisplayed ? 200 : 0;
+    
+    setTimeout(() => {
+        // 隐藏所有步骤和UI元素
+        allSections.forEach(section => {
+            if (section) {
+                section.style.display = 'none';
+                // Reset opacity to 0 to prepare for fade-in
+                section.style.opacity = 0;
+            }
+        });
+        
+        if (timeDisplay) {
+            timeDisplay.style.display = 'none';
+            timeDisplay.style.opacity = 0;
+        }
+        if (controls) {
+            controls.style.display = 'none';
+            controls.style.opacity = 0;
+        }
+        if (legend) {
+            legend.style.display = 'none';
+            legend.style.opacity = 0;
+        }
+        
+        // 重置body类
+        document.body.classList.remove('story-mode');
+        document.body.classList.remove('analysis-mode');
+        
+        // 显示选定的步骤
+        const targetSection = document.getElementById(step);
+        if (targetSection) {
+            switch(step) {
+                case 'cat-explanation':
+                    targetSection.style.display = 'flex';
+                    document.body.classList.add('story-mode');
+                    setTimeout(() => { 
+                        targetSection.style.opacity = 1;
+                        // Remove transitioning class after animation completes
+                        setTimeout(() => document.body.classList.remove('transitioning'), 300);
+                    }, 10);
+                    break;
+                case 'mice-animation-explanation':
+                    targetSection.style.display = 'flex';
+                    document.body.classList.add('story-mode');
+                    setTimeout(() => { 
+                        targetSection.style.opacity = 1;
+                        // Remove transitioning class after animation completes
+                        setTimeout(() => document.body.classList.remove('transitioning'), 300);
+                    }, 10);
+                    break;
+                case 'experiment-container':
+                    targetSection.style.display = 'flex';
+                    if (timeDisplay) timeDisplay.style.display = 'block';
+                    if (controls) controls.style.display = 'flex';
+                    if (legend) legend.style.display = 'block';
+                    document.body.classList.add('story-mode');
+                    
+                    // 逐渐显示所有元素
+                    setTimeout(() => {
+                        targetSection.style.opacity = 1;
+                        if (timeDisplay) timeDisplay.style.opacity = 1;
+                        if (controls) controls.style.opacity = 1;
+                        if (legend) legend.style.opacity = 1;
+                        // Trigger a resize event to recalculate the canvas dimensions
+                        window.dispatchEvent(new Event('resize'));
+                        // Remove transitioning class after animation completes
+                        setTimeout(() => document.body.classList.remove('transitioning'), 300);
+                    }, 10);
+                    break;
+                case 'data-analysis':
+                    targetSection.style.display = 'block';
+                    document.body.classList.add('analysis-mode');
+                    setTimeout(() => {
+                        targetSection.style.opacity = 1;
+                        // 初始化数据分析可视化
+                        if (typeof initDataVisualization === 'function') {
+                            initDataVisualization();
+                        } else {
+                            loadPreviousVisualization();
+                        }
+                        // Remove transitioning class after animation completes
+                        setTimeout(() => document.body.classList.remove('transitioning'), 300);
+                    }, 10);
+                    break;
+            }
+        }
+        
+        // 更新活动步骤
+        updateActiveStep(step);
+        
+    }, transitionDelay); // 根据是否需要淡出决定延迟时间
 }
 
 // 更新活动步骤
@@ -968,16 +1039,40 @@ window.addEventListener('error', function(event) {
 
 // Ensure the page is fully reset on reload
 window.addEventListener('beforeunload', function() {
-    // Clear hash to prevent automatic navigation on reload
+    // Clear hash to prevent automatic navigation on reload if desired
+    // Uncomment the next lines if you want to always start at the beginning on reload
+    /*
     if (window.location.hash) {
         window.location.hash = '';
+    }
+    */
+    
+    // We'll let the hash persist by default to allow for bookmarking specific sections
+});
+
+// Refresh the UI state when the page becomes visible again (tab switch, reload, etc.)
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+        // When coming back to the page, ensure UI state is correct
+        const hash = window.location.hash.substring(1);
+        const validSteps = ['cat-explanation', 'mice-animation-explanation', 'experiment-container', 'data-analysis'];
+        
+        if (hash && validSteps.includes(hash)) {
+            // Slight delay to ensure all elements are ready
+            setTimeout(() => {
+                navigateToStep(hash);
+            }, 100);
+        }
     }
 });
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize page state based on URL hash or default to cat explanation
     function initializePageState() {
-        // Hide all sections first
+        // First, ensure all transitions are disabled during initial setup
+        document.body.classList.remove('transitioning');
+        
+        // First, set all sections to hidden and opacity 0
         const allSections = [
             'cat-explanation',
             'mice-animation-explanation',
@@ -985,25 +1080,36 @@ document.addEventListener('DOMContentLoaded', function() {
             'data-analysis'
         ];
         
+        // Hide all sections and reset their opacity
         allSections.forEach(section => {
-            document.getElementById(section).style.display = 'none';
+            const el = document.getElementById(section);
+            if (el) {
+                el.style.display = 'none';
+                el.style.opacity = 0;
+            }
         });
         
         // Hide UI elements that should be initially hidden
-        document.getElementById('time-display').style.display = 'none';
-        document.getElementById('controls').style.display = 'none';
-        document.getElementById('legend').style.display = 'none';
+        const timeDisplay = document.getElementById('time-display');
+        const controls = document.getElementById('controls');
+        const legend = document.getElementById('legend');
+        
+        if (timeDisplay) timeDisplay.style.display = 'none';
+        if (controls) controls.style.display = 'none';
+        if (legend) legend.style.display = 'none';
+        
+        // Reset body classes
+        document.body.classList.remove('story-mode');
+        document.body.classList.remove('analysis-mode');
         
         // Check URL hash to determine which section to show
         const hash = window.location.hash.substring(1);
         if (hash && allSections.includes(hash)) {
+            // Use navigateToStep for consistent handling
             navigateToStep(hash);
         } else {
-            // Default to cat explanation
-            document.getElementById('cat-explanation').style.display = 'flex';
-            document.body.classList.add('story-mode');
-            document.body.classList.remove('analysis-mode');
-            updateActiveStep('cat-explanation');
+            // Default to cat explanation - use navigateToStep for consistent handling
+            navigateToStep('cat-explanation');
         }
     }
     
