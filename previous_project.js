@@ -230,7 +230,7 @@ function renderClockChart() {
       .on('mousemove', (event) => {
         const [sx, sy] = d3.pointer(event, g.node());
         const angle = Math.atan2(sy, sx);
-        const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15) + 12) % 24;
+        const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15)) % 24;
         showTooltip(event, mouseId, lineData, hour);
       })
       .on('mouseout', function() {
