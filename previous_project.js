@@ -126,7 +126,7 @@ function renderClockChart() {
 
   // 设置更合理的数据范围，确保图表和tooltip显示一致
   // 对于activity数据，最大值应该能够容纳所有可能的数据点
-  const maxValue = currentMetric === 'activity' ? 50 : 19.5; // 增大activity的最大值以适应更高的数据点
+  const maxValue = currentMetric === 'activity' ? 36 : 19.5; // 增大activity的最大值以适应更高的数据点
   const minValue = currentMetric === 'activity' ? 0 : 18;
   const valueScale = d3.scaleLinear()
       .domain([minValue, maxValue])
@@ -269,7 +269,7 @@ function renderClockChart() {
         const angle = Math.atan2(sy, sx);
         // 修正角度计算逻辑，确保与时间标签显示一致
         // 将角度转换为小时，确保与图表外圈的时间标签完全对应
-        const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15)) % 24;
+        const hour = (Math.floor(((angle * 180 / Math.PI + 90 + 360) % 360) / 15) / 12) % 24;
         
         // 在鼠标位置显示一个小点，标记当前选中的时间点
         d3.select('.time-indicator').remove();
@@ -645,4 +645,3 @@ if (searchInput) {
 }
 
 window.handleSearch = handleSearch;
-

@@ -282,10 +282,13 @@ function showPreviousVisualization() {
                             Higher activity counts indicate more movement, which correlates with the speed and frequency of mouse movement in their cage.
                             This data helps us understand patterns of rest and activity in relation to circadian rhythms and environmental factors.
                         </p>
+                        <p>
+                            <strong>Tips:</strong> Data has been processed with interpolation, resulting in a smoothed curve.
+                        </p>
                     </div>
                     <div class="controls">
-                        <button onclick="toggleGender()">Gender: Female</button>
-                        <button onclick="toggleMetric()">Metric: Activity</button>
+                        <button id="genderButton">Gender: Female</button>
+                        <button id="metricButton">Metric: Activity</button>
                     </div>
                     <div class="legend"></div>
                     <div class="clock-chart"></div>
